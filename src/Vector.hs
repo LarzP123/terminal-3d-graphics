@@ -73,3 +73,4 @@ instance Num Vec4 where
         where n = fromIntegral a
     negate :: Vec4 -> Vec4
     negate (Vec4 x y z w) = Vec4 (-x) (-y) (-z) (-w)
+
