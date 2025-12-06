@@ -1,42 +1,5 @@
+import Vector
 import Data.Maybe (isJust)
-
--- | A Vector containing 4 components.
-data Vec4 = Vec4 Double Double Double Double deriving (Show, Eq)
-
--- Does Z Buffering to get the nearest Vector
-instance Ord Vec4 where
-    compare :: Vec4 -> Vec4 -> Ordering
-    compare (Vec4 _ _ z1 _) (Vec4 _ _ z2 _) = compare z1 z2
-
--- | Vector Dot Product. Multiplies corresponding components and then takes a sum.
-dot :: Vec4 -> Vec4 -> Double
-dot (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = x1*x2 + y1*y2 + z1*z2 + w1*w2
-
--- | Vector Cross Product. Creates a new vector perpendicular to the other 2 vectors.
-cross :: Vec4 -> Vec4 -> Vec4
-cross (Vec4 x1 y1 z1 _) (Vec4 x2 y2 z2 _) = Vec4 (y1*z2-z1*y2) (z1*x2-x1*z2) (x1*y2-y1*x2) 0
-
-instance Num Vec4 where
-    (+) :: Vec4 -> Vec4 -> Vec4
-    (+) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1+x2) (y1+y2) (z1+z2) (w1+w2)
-    -- Componentwise multiplication. Neither dot nor cross product.
-    (*) :: Vec4 -> Vec4 -> Vec4
-    (*) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1*x2) (y1*y2) (z1*z2) (w1+w2)
-    -- | vector magnitude across all components.
-    abs :: Vec4 -> Vec4
-    abs (Vec4 x y z w) = Vec4 mag mag mag mag
-        where mag = sqrt (x*x + y*y + z*z + w*w)
-    -- | Returns back a unit Vector in the same direction as the original vector.
-    signum :: Vec4 -> Vec4
-    signum v@(Vec4 x y z w)
-        | mag == 0  = Vec4 0 0 0 0
-        | otherwise = Vec4 (x/mag) (y/mag) (z/mag) (w/mag)
-        where mag = sqrt (x*x + y*y + z*z + w*w)
-    fromInteger :: Integer -> Vec4
-    fromInteger a = Vec4 n n n n
-        where n = fromIntegral a
-    negate :: Vec4 -> Vec4
-    negate (Vec4 x y z w) = Vec4 (-x) (-y) (-z) (-w)
 
 -- | A 4x4 Matrix.
 data Mat4 = Mat4 Vec4 Vec4 Vec4 Vec4 deriving (Show, Eq)
