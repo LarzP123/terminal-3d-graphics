@@ -1,5 +1,5 @@
 module Tri where
-import Vector ( Vec4(Vec4), Vec3(..), Dot(dot) )
+import Vector
 import Matrix ( Mat4, multMatVec )
 
 -- | A Triangle made of 3 vector points in space
@@ -12,34 +12,33 @@ triSubVec (Tri a b c color) v = Tri (a-v) (b-v) (c-v) color
 -- | barycentric-coordinate point-in-triangle test + depth interpolation
 pointInsideTriDepth :: (Double, Double) -> Tri -> Maybe Double
 pointInsideTriDepth (px, py)
-    (Tri p1@(Vec3 _ _ z1 )
-         p2@(Vec3 _ _ z2)
-         p3@(Vec3 _ _ z3) _) =
+    (Tri (Vec3 x1 y1 z1)
+         (Vec3 x2 y2 z2)
+         (Vec3 x3 y3 z3) _) =
+
     let
-        -- Convert point to Vec 3
-        p  = Vec3 px py 0
+        v0x = x2 - x1; v0y = y2 - y1
+        v1x = x3 - x1; v1y = y3 - y1
+        v2x = px - x1; v2y = py - y1
 
-        -- Edge vectors
-        v0 = p3 - p1
-        v1 = p2 - p1
-        v2 = p  - p1
-
-        -- Dot products
-        dot00 = dot v0 v0
-        dot01 = dot v0 v1
-        dot02 = dot v0 v2
-        dot11 = dot v1 v1
-        dot12 = dot v1 v2
+        dot00 = v0x*v0x + v0y*v0y
+        dot01 = v0x*v1x + v0y*v1y
+        dot02 = v0x*v2x + v0y*v2y
+        dot11 = v1x*v1x + v1y*v1y
+        dot12 = v1x*v2x + v1y*v2y
 
         denom = dot00 * dot11 - dot01 * dot01
-
-        u = (dot11 * dot02 - dot01 * dot12) / denom
-        v = (dot00 * dot12 - dot01 * dot02) / denom
-        w = 1 - u - v
     in
-        if u >= 0 && v >= 0 && w >= 0
-            then Just (w*z1 + v*z2 + u*z3)
-            else Nothing
+        if denom < 0.0001 then Nothing
+        else
+            let v   = (dot11 * dot02 - dot01 * dot12) / denom
+                w   = (dot00 * dot12 - dot01 * dot02) / denom
+                u   = 1 - v - w
+                eps = 1e-9
+                z   = u*z1 + v*z2 + w*z3
+            in if u >= -eps && v >= -eps && w >= -eps && z > 0.1
+                then Just z
+                else Nothing
 
 -- | Convert 3D space point to screen coordinates
 spacePointToScreen :: Mat4 -> Vec3 -> Vec3
@@ -55,5 +54,5 @@ get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (spacePointToScreen pe
             (spacePointToScreen perspectiveMat c) color)
 
 -- | Allows you to easily map a math function onto all the coordinates of a triangle
-mapTri :: (Vec3 -> Vec3) -> [Tri] -> [Tri]
-mapTri func tris = [ Tri (func a) (func b) (func c) color | Tri a b c color <- tris ]
+mapTris :: (Vec3 -> Vec3) -> [Tri] -> [Tri]
+mapTris func tris = [ Tri (func a) (func b) (func c) color | Tri a b c color <- tris ]

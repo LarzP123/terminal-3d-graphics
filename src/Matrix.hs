@@ -1,5 +1,5 @@
 module Matrix where
-import Vector ( Vec4(..), Dot(dot) )
+import Vector
 
 -- | A 4x4 Matrix.
 data Mat4 = Mat4 Vec4 Vec4 Vec4 Vec4 deriving (Show, Eq)

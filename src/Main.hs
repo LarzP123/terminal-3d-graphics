@@ -33,11 +33,11 @@ loop currentPos world = do
 
 -- | Create World
 createWorld :: [Tri]
-createWorld =
-    let
-        bigCube = mapTri (*2) cube
-        bigFarCube = mapTri (+ Vec3 0 0 (-20)) bigCube
-    in bigFarCube
+createWorld = cube
+    -- let
+        -- bigCube = mapTris (*2) cube
+        -- bigFarCube = mapTris (+ Vec3 0 0 40) bigCube
+    -- in cube
 
 -- | Entry point
 main :: IO ()
