@@ -1,6 +1,6 @@
 module Tri where
 import Vector
-import Matrix ( Mat4, multMatVec )
+import Matrix
 
 -- | A Triangle made of 3 vector points in space
 data Tri = Tri Vec3 Vec3 Vec3 Char deriving Show
@@ -40,18 +40,11 @@ pointInsideTriDepth (px, py)
                 then Just z
                 else Nothing
 
--- | Convert 3D space point to screen coordinates
-spacePointToScreen :: Mat4 -> Vec3 -> Vec3
-spacePointToScreen perspectiveMat (Vec3 a b c) =
-    let Vec4 rx ry rz rw = multMatVec perspectiveMat coord4D
-    in Vec3 (rx / rw) (ry / rw) (rz / rw)
-    where coord4D = Vec4 a b c 1
-
 -- | Converts a series of 3d triangles to 2d triangles given a camera perspective
 get2DTris :: Mat4 -> [Tri] -> [Tri]
-get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (spacePointToScreen perspectiveMat a)
-            (spacePointToScreen perspectiveMat b)
-            (spacePointToScreen perspectiveMat c) color)
+get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec3 perspectiveMat a 1)
+            (multMatVec3 perspectiveMat b 1)
+            (multMatVec3 perspectiveMat c 1) color)
 
 -- | Allows you to easily map a math function onto all the coordinates of a triangle
 mapTris :: (Vec3 -> Vec3) -> [Tri] -> [Tri]

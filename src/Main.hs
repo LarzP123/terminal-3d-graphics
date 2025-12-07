@@ -1,6 +1,6 @@
 import Vector ( Vec3(..) )
 import TerminalGraphics ( clearScreen, getScreen )
-import Matrix ( symmetricPerspectiveMatrix )
+import Matrix
 import Tri
 import Objects
 
@@ -14,14 +14,26 @@ move cmd (Vec3 x y z) =
         "right"    -> Vec3 (x - 1) y z
         _          -> Vec3 x y z
 
+-- | Keep only triangles where all vertices have positive Z
+clipBehindCamera :: [Tri] -> [Tri]
+clipBehindCamera = filter allVerticesPositiveZ
+  where
+    allVerticesPositiveZ :: Tri -> Bool
+    allVerticesPositiveZ (Tri (Vec3 _ _ z1)
+                               (Vec3 _ _ z2)
+                               (Vec3 _ _ z3) _) =
+      z1 > 0 && z2 > 0 && z3 > 0
+
 -- | Recursive loop for each "frame" of the 3d game
 loop :: Vec3 -> [Tri] -> IO ()
 loop currentPos world = do
     clearScreen
     -- print current screen
-    let screenMat = symmetricPerspectiveMatrix 2 0.1 2 10
-    let relativeTris = map (`triSubVec` currentPos) world
-    let screenTris = get2DTris screenMat relativeTris
+    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 10
+    let movedTris = map (`triSubVec` currentPos) world
+    let viewTris = mapTris (\v3 -> multMatVec3 (viewMatrix 0.0) v3 1) movedTris
+    let clippedViewTris = clipBehindCamera viewTris
+    let screenTris = get2DTris screenMat clippedViewTris
     putStrLn (getScreen screenTris 10)
     -- print current pos
     putStrLn $ "Current position: " ++ show currentPos
@@ -42,5 +54,5 @@ createWorld = cube
 -- | Entry point
 main :: IO ()
 main = do
-    loop (Vec3 0 0 0) createWorld
+    loop (Vec3 (-20) 0 (-25)) createWorld
 
