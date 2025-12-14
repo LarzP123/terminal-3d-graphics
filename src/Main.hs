@@ -29,12 +29,12 @@ loop :: Vec3 -> [Tri] -> IO ()
 loop currentPos world = do
     clearScreen
     -- print current screen
-    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 10
+    let screenMat = symmetricPerspectiveMatrix 1 0.6 1 5
     let movedTris = map (`triSubVec` currentPos) world
     let viewTris = mapTris (\v3 -> multMatVec3 (viewMatrix 0.0) v3 1) movedTris
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
-    putStrLn (getScreen screenTris 10)
+    putStrLn (getScreen screenTris 30)
     -- print current pos
     putStrLn $ "Current position: " ++ show currentPos
     putStrLn "Enter command (forward/backward/quit): "
@@ -54,5 +54,5 @@ createWorld = cube
 -- | Entry point
 main :: IO ()
 main = do
-    loop (Vec3 (-20) 0 (-25)) createWorld
+    loop (Vec3 15 0 (-25)) createWorld
 
