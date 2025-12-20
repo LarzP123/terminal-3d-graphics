@@ -3,6 +3,8 @@ import TerminalGraphics ( clearScreen, getScreen )
 import Matrix
 import Tri
 import Objects
+import Control.Monad.Trans.State
+import Control.Monad.IO.Class (liftIO)
 
 -- String input to move the camera. Takes in string input and the current position to output the new position
 move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
@@ -38,25 +40,32 @@ clipBehindCamera = filter allVerticesPositiveZ
                                (Vec3 _ _ z3) _) =
       z1 > 0 && z2 > 0 && z3 > 0
 
--- | Recursive loop for each "frame" of the 3d game
-loop :: (Vec3, Vec3) -> [Tri Vec3] -> IO ()
-loop (currentPos, currentRot) world = do
-    clearScreen
-    -- print current screen
+-- | The game loop using StateT
+loop :: [Tri Vec3] -> StateT (Vec3, Vec3) IO ()
+loop world = do
+    -- get current state
+    (currentPos, currentRot) <- get
+    -- clear screen
+    liftIO clearScreen
+    -- compute screen
     let screenMat = symmetricPerspectiveMatrix 1 0.6 1 5
-    let movedTris = (fmap . fmap) (\vec3 -> vec3 - currentPos) world
-    let viewTris = (fmap . fmap) (\vec3 -> multMatVec3 (viewMatrix currentRot) vec3 1) movedTris
+    let movedTris = (fmap . fmap) (\v -> v - currentPos) world
+    let viewTris = (fmap . fmap) (\v -> multMatVec3 (viewMatrix currentRot) v 1) movedTris
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
-    putStrLn (getScreen screenTris 30)
-    -- print current pos
-    putStrLn $ "Current position: " ++ show currentPos
-    putStrLn $ "Current rotation: " ++ show currentRot
-    putStrLn "Enter command (forward/backward/quit): "
-    cmd <- getLine
+    -- print screen
+    liftIO $ putStrLn (getScreen screenTris 30)
+    liftIO $ putStrLn $ "Current position: " ++ show currentPos
+    liftIO $ putStrLn $ "Current rotation: " ++ show currentRot
+    liftIO $ putStrLn "Enter command (forward/backward/quit): "
+    -- get input
+    cmd <- liftIO getLine
     if cmd == "quit"
-        then putStrLn "Exiting."
-        else loop (move cmd currentPos currentRot) world
+        then liftIO $ putStrLn "Exiting."
+        else do
+            -- update state
+            modify (\_ -> move cmd currentPos currentRot)
+            loop world
 
 -- | Create World
 createWorld :: [Tri Vec3]
@@ -67,6 +76,4 @@ createWorld =
 
 -- | Entry point
 main :: IO ()
-main = do
-    loop (Vec3 0 0 0, Vec3 0 0 0) createWorld
-
+main = evalStateT (loop createWorld) (Vec3 0 0 0, Vec3 0 0 0)
