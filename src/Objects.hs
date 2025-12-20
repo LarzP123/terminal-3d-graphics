@@ -3,7 +3,7 @@ import Tri ( Tri(..) )
 import Vector ( Vec3(Vec3) )
 
 -- | A cube
-cube :: [Tri]
+cube :: [Tri Vec3]
 cube =
     [
         -- FRONT (z = 10) – white
@@ -31,7 +31,7 @@ cube =
         Tri (Vec3 (-10) (-10) (-10)) (Vec3 10 (-10) 10) (Vec3 (-10) (-10) 10) 'c'
     ]
 
-tree :: [Tri]
+tree :: [Tri Vec3]
 tree =
     [
         ------------------------------------------------------------------

@@ -1,11 +1,12 @@
 module TerminalGraphics where
 import Tri
+import Vector (Vec3)
 
 -- | Clears the terminal
 clearScreen :: IO ()
 clearScreen = putStr "\ESC[2J\ESC[H"
 
-getColorOfPixel :: Double -> Double -> [Tri] -> Char
+getColorOfPixel :: Double -> Double -> [Tri Vec3] -> Char
 getColorOfPixel x y tris =
     let px = x - 0.5
         py = y - 0.5
@@ -38,7 +39,7 @@ colorToANSI16SGRCode color foreground =
             'w' -> 97  -- white
             _   -> 97  -- default white
 
-getColored2Pixel :: Int -> Int -> [Tri] -> Int -> String
+getColored2Pixel :: Int -> Int -> [Tri Vec3] -> Int -> String
 getColored2Pixel xPix yPix tris screenSize =
     let
         xRel      = fromIntegral xPix / fromIntegral screenSize
@@ -51,7 +52,7 @@ getColored2Pixel xPix yPix tris screenSize =
     in "\ESC[" ++ show colorTopNum ++ ";" ++ show colorBotNum ++ "m▀\ESC[0m"
 
 
-getScreen :: [Tri] -> Int -> String
+getScreen :: [Tri Vec3] -> Int -> String
 getScreen tris screenSize =
     unlines
         [ concatMap (\x -> getColored2Pixel x y tris screenSize)

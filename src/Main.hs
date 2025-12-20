@@ -29,23 +29,23 @@ move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
 
 
 -- | Keep only triangles where all vertices have positive Z
-clipBehindCamera :: [Tri] -> [Tri]
+clipBehindCamera :: [Tri Vec3] -> [Tri Vec3]
 clipBehindCamera = filter allVerticesPositiveZ
   where
-    allVerticesPositiveZ :: Tri -> Bool
+    allVerticesPositiveZ :: Tri Vec3 -> Bool
     allVerticesPositiveZ (Tri (Vec3 _ _ z1)
                                (Vec3 _ _ z2)
                                (Vec3 _ _ z3) _) =
       z1 > 0 && z2 > 0 && z3 > 0
 
 -- | Recursive loop for each "frame" of the 3d game
-loop :: (Vec3, Vec3) -> [Tri] -> IO ()
+loop :: (Vec3, Vec3) -> [Tri Vec3] -> IO ()
 loop (currentPos, currentRot) world = do
     clearScreen
     -- print current screen
     let screenMat = symmetricPerspectiveMatrix 1 0.6 1 5
-    let movedTris = map (`triSubVec` currentPos) world
-    let viewTris = mapTris (\v3 -> multMatVec3 (viewMatrix currentRot) v3 1) movedTris
+    let movedTris = (fmap . fmap) (\vec3 -> vec3 - currentPos) world
+    let viewTris = (fmap . fmap) (\vec3 -> multMatVec3 (viewMatrix currentRot) vec3 1) movedTris
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
     putStrLn (getScreen screenTris 30)
@@ -59,10 +59,10 @@ loop (currentPos, currentRot) world = do
         else loop (move cmd currentPos currentRot) world
 
 -- | Create World
-createWorld :: [Tri]
+createWorld :: [Tri Vec3]
 createWorld =
     let
-        farCube = mapTris (+ Vec3 0 0 40) cube
+        farCube = (fmap . fmap) (+ Vec3 0 0 40) cube
     in farCube
 
 -- | Entry point

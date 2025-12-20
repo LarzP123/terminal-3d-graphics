@@ -1,16 +1,17 @@
+{-# LANGUAGE InstanceSigs #-}
 module Tri where
 import Vector
 import Matrix
 
--- | A Triangle made of 3 vector points in space
-data Tri = Tri Vec3 Vec3 Vec3 Char deriving Show
+-- | A Triangle made of 3 vertices of type 'a' in space, with a color
+data Tri a = Tri a a a Char deriving Show
 
--- | Triangle minus a vector coordiante. Just shifts the triangle around
-triSubVec :: Tri -> Vec3 -> Tri
-triSubVec (Tri a b c color) v = Tri (a-v) (b-v) (c-v) color
+instance Functor Tri where
+    fmap :: (a -> b) -> Tri a -> Tri b
+    fmap f (Tri a b c color) = Tri (f a) (f b) (f c) color
 
 -- | barycentric-coordinate point-in-triangle test + depth interpolation
-pointInsideTriDepth :: (Double, Double) -> Tri -> Maybe Double
+pointInsideTriDepth :: (Double, Double) -> Tri Vec3 -> Maybe Double
 pointInsideTriDepth (px, py)
     (Tri (Vec3 x1 y1 z1)
          (Vec3 x2 y2 z2)
@@ -41,11 +42,7 @@ pointInsideTriDepth (px, py)
                 else Nothing
 
 -- | Converts a series of 3d triangles to 2d triangles given a camera perspective
-get2DTris :: Mat4 -> [Tri] -> [Tri]
+get2DTris :: Mat4 -> [Tri Vec3] -> [Tri Vec3]
 get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec3 perspectiveMat a 1)
             (multMatVec3 perspectiveMat b 1)
             (multMatVec3 perspectiveMat c 1) color)
-
--- | Allows you to easily map a math function onto all the coordinates of a triangle
-mapTris :: (Vec3 -> Vec3) -> [Tri] -> [Tri]
-mapTris func tris = [ Tri (func a) (func b) (func c) color | Tri a b c color <- tris ]
