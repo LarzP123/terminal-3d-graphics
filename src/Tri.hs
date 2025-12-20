@@ -1,4 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
 module Tri where
 import Vector
 import Matrix
@@ -7,39 +6,38 @@ import Matrix
 data Tri a = Tri a a a Char deriving Show
 
 instance Functor Tri where
-    fmap :: (a -> b) -> Tri a -> Tri b
     fmap f (Tri a b c color) = Tri (f a) (f b) (f c) color
 
 -- | barycentric-coordinate point-in-triangle test + depth interpolation
-pointInsideTriDepth :: (Double, Double) -> Tri Vec3 -> Maybe Double
-pointInsideTriDepth (px, py)
-    (Tri (Vec3 x1 y1 z1)
-         (Vec3 x2 y2 z2)
-         (Vec3 x3 y3 z3) _) =
-
+pointInsideTriDepth :: Vec2 -> Tri Vec3 -> Maybe Double
+pointInsideTriDepth p (Tri vecA vecB vecC _) =
     let
-        v0x = x2 - x1; v0y = y2 - y1
-        v1x = x3 - x1; v1y = y3 - y1
-        v2x = px - x1; v2y = py - y1
+        vecAtoB = condense (vecB - vecA)
+        vecAtoC = condense (vecC - vecA)
+        vecAtoP = p - condense vecA
 
-        dot00 = v0x*v0x + v0y*v0y
-        dot01 = v0x*v1x + v0y*v1y
-        dot02 = v0x*v2x + v0y*v2y
-        dot11 = v1x*v1x + v1y*v1y
-        dot12 = v1x*v2x + v1y*v2y
+        dot00 = vecAtoB `dot` vecAtoB
+        dot01 = vecAtoB `dot` vecAtoC
+        dot02 = vecAtoB `dot` vecAtoP
+        dot11 = vecAtoC `dot` vecAtoC
+        dot12 = vecAtoC `dot` vecAtoP
 
         denom = dot00 * dot11 - dot01 * dot01
     in
-        if denom < 0.0001 then Nothing
+        if denom < 1e-4 then Nothing
         else
             let v   = (dot11 * dot02 - dot01 * dot12) / denom
                 w   = (dot00 * dot12 - dot01 * dot02) / denom
                 u   = 1 - v - w
                 eps = 1e-9
-                z   = u*z1 + v*z2 + w*z3
+                z = u*zA + v*zB + w*zC
             in if u >= -eps && v >= -eps && w >= -eps && z > 0.1
                 then Just z
                 else Nothing
+        where
+            Vec3 _ _ zA = vecA
+            Vec3 _ _ zB = vecB
+            Vec3 _ _ zC = vecC
 
 -- | Converts a series of 3d triangles to 2d triangles given a camera perspective
 get2DTris :: Mat4 -> [Tri Vec3] -> [Tri Vec3]

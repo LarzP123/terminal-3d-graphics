@@ -1,6 +1,6 @@
 module TerminalGraphics where
 import Tri
-import Vector (Vec3)
+import Vector
 
 -- | Clears the terminal
 clearScreen :: IO ()
@@ -16,7 +16,7 @@ getColorOfPixel x y tris =
         candidates =
             [ (d, c)
             | tri@(Tri _ _ _ c) <- tris
-            , Just d <- [pointInsideTriDepth (px, py) tri]
+            , Just d <- [pointInsideTriDepth (Vec2 px py) tri]
             ]
     in
         case candidates of

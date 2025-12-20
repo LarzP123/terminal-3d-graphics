@@ -1,4 +1,4 @@
-import Vector ( Vec3(..) )
+import Vector
 import TerminalGraphics ( clearScreen, getScreen )
 import Matrix
 import Tri
