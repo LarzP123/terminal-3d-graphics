@@ -1,5 +1,3 @@
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE InstanceSigs #-}
 module Vector where
 import Numeric
 
@@ -29,22 +27,17 @@ instance Show Vec4 where
     show (Vec4 x y z w) =
         init . init $ showVec ["x","y","z","w"] [x,y,z,w]
 
--- | Condense a vector to a smaller vector type
-class Condense a b where
-    condense :: a -> b
+-- | Convert Vec4 to Vec3 by dropping the w component
+vec4ToVec3 :: Vec4 -> Vec3
+vec4ToVec3 (Vec4 x y z _) = Vec3 x y z
 
--- Vec4 -> Vec3
-instance Condense Vec4 Vec3 where
-    condense :: Vec4 -> Vec3
-    condense (Vec4 x y z _) = Vec3 x y z
+-- | Convert Vec4 to Vec2 by dropping z and w
+vec4ToVec2 :: Vec4 -> Vec2
+vec4ToVec2 (Vec4 x y _ _) = Vec2 x y
 
--- Vec4 -> Vec2
-instance Condense Vec4 Vec2 where
-    condense (Vec4 x y _ _) = Vec2 x y
-
--- Vec3 -> Vec2
-instance Condense Vec3 Vec2 where
-    condense (Vec3 x y _) = Vec2 x y
+-- | Convert Vec3 to Vec2 by dropping z
+vec3ToVec2 :: Vec3 -> Vec2
+vec3ToVec2 (Vec3 x y _) = Vec2 x y
 
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where

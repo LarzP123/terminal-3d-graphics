@@ -12,9 +12,9 @@ instance Functor Tri where
 pointInsideTriDepth :: Vec2 -> Tri Vec3 -> Maybe Double
 pointInsideTriDepth p (Tri vecA vecB vecC _) =
     let
-        vecAtoB = condense (vecB - vecA)
-        vecAtoC = condense (vecC - vecA)
-        vecAtoP = p - condense vecA
+        vecAtoB = vec3ToVec2 (vecB - vecA)
+        vecAtoC = vec3ToVec2 (vecC - vecA)
+        vecAtoP = p - vec3ToVec2 vecA
 
         dot00 = vecAtoB `dot` vecAtoB
         dot01 = vecAtoB `dot` vecAtoC
