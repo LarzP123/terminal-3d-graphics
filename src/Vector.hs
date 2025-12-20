@@ -1,11 +1,26 @@
 {-# LANGUAGE InstanceSigs #-}
 module Vector where
+import Numeric
 
 -- | A Vector containing 3 components.
-data Vec3 = Vec3 Double Double Double deriving (Show, Eq)
+data Vec3 = Vec3 Double Double Double deriving Eq
 
 -- | A Vector containing 4 components.
-data Vec4 = Vec4 Double Double Double Double deriving (Show, Eq)
+data Vec4 = Vec4 Double Double Double Double deriving (Eq)
+
+instance Show Vec3 where
+    show :: Vec3 -> String
+    show (Vec3 x y z) =
+        "x " ++ f x ++ ", y " ++ f y ++ ", z " ++ f z ++ ")"
+      where
+        f n = showFFloat (Just 3) n ""
+
+instance Show Vec4 where
+    show :: Vec4 -> String
+    show (Vec4 x y z w) =
+        "x " ++ f x ++ ", y " ++ f y ++ ", z " ++ f z ++ ", w " ++ f w ++ ")"
+      where
+        f n = showFFloat (Just 3) n ""
 
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where
@@ -73,4 +88,3 @@ instance Num Vec4 where
         where n = fromIntegral a
     negate :: Vec4 -> Vec4
     negate (Vec4 x y z w) = Vec4 (-x) (-y) (-z) (-w)
-

@@ -1,4 +1,4 @@
-1. Make turning left and right and up and down
+1. Allow textures
 2. Make screensize allow different x and y boundaries
 3. Allow Trees
 4. Make Color it's own type and not a char
@@ -7,3 +7,4 @@
 7. Allow Tri Clipping when near screen
 8. Move Stuff out of the Main Method
 9. Figure out how to export as library
+10. Add Unit Tests

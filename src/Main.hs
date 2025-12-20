@@ -5,14 +5,28 @@ import Tri
 import Objects
 
 -- String input to move the camera. Takes in string input and the current position to output the new position
-move :: String -> Vec3 -> Vec3
-move cmd (Vec3 x y z) =
+move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
+move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
     case cmd of
-        "forward"  -> Vec3 x y (z + 1)
-        "backward" -> Vec3 x y (z - 1)
-        "left"     -> Vec3 (x + 1) y z
-        "right"    -> Vec3 (x - 1) y z
-        _          -> Vec3 x y z
+        -- Strafing
+        "forward"  -> (Vec3 x       y (z + 1), rot)
+        "backward" -> (Vec3 x       y (z - 1), rot)
+        "left"     -> (Vec3 (x + 1) y z      , rot)
+        "right"    -> (Vec3 (x - 1) y z      , rot)
+        -- Rotating
+        "turn left"  -> (pos, Vec3 pitch (yaw - yawInc) roll)
+        "turn right" -> (pos, Vec3 pitch (yaw + yawInc) roll)
+        "turn up"    -> (pos, Vec3 (pitch + pitchInc) yaw roll)
+        "turn down"  -> (pos, Vec3 (pitch - pitchInc) yaw roll)
+        "lean left"  -> (pos, Vec3 pitch yaw (roll - rollInc))
+        "lean right" -> (pos, Vec3 pitch yaw (roll + rollInc))
+        -- Default
+        _ -> (pos, rot)
+    where
+        pitchInc = 0.2
+        yawInc = 0.2
+        rollInc = 0.2
+
 
 -- | Keep only triangles where all vertices have positive Z
 clipBehindCamera :: [Tri] -> [Tri]
@@ -25,34 +39,34 @@ clipBehindCamera = filter allVerticesPositiveZ
       z1 > 0 && z2 > 0 && z3 > 0
 
 -- | Recursive loop for each "frame" of the 3d game
-loop :: Vec3 -> [Tri] -> IO ()
-loop currentPos world = do
+loop :: (Vec3, Vec3) -> [Tri] -> IO ()
+loop (currentPos, currentRot) world = do
     clearScreen
     -- print current screen
     let screenMat = symmetricPerspectiveMatrix 1 0.6 1 5
     let movedTris = map (`triSubVec` currentPos) world
-    let viewTris = mapTris (\v3 -> multMatVec3 (viewMatrix 0.0) v3 1) movedTris
+    let viewTris = mapTris (\v3 -> multMatVec3 (viewMatrix currentRot) v3 1) movedTris
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
     putStrLn (getScreen screenTris 30)
     -- print current pos
     putStrLn $ "Current position: " ++ show currentPos
+    putStrLn $ "Current rotation: " ++ show currentRot
     putStrLn "Enter command (forward/backward/quit): "
     cmd <- getLine
     if cmd == "quit"
         then putStrLn "Exiting."
-        else loop (move cmd currentPos) world
+        else loop (move cmd currentPos currentRot) world
 
 -- | Create World
 createWorld :: [Tri]
-createWorld = cube
-    -- let
-        -- bigCube = mapTris (*2) cube
-        -- bigFarCube = mapTris (+ Vec3 0 0 40) bigCube
-    -- in cube
+createWorld =
+    let
+        farCube = mapTris (+ Vec3 0 0 40) cube
+    in farCube
 
 -- | Entry point
 main :: IO ()
 main = do
-    loop (Vec3 15 0 (-25)) createWorld
+    loop (Vec3 0 0 0, Vec3 0 0 0) createWorld
 
