@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 module Tri where
 import Vector
 import Matrix
@@ -6,6 +7,7 @@ import Matrix
 data Tri a = Tri a a a Char deriving Show
 
 instance Functor Tri where
+    fmap :: (a -> b) -> Tri a -> Tri b
     fmap f (Tri a b c color) = Tri (f a) (f b) (f c) color
 
 -- | barycentric-coordinate point-in-triangle test + depth interpolation

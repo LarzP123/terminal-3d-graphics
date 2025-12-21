@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 module Vector where
 import Numeric
 
@@ -16,14 +17,17 @@ showVec names values =
     concat $ zipWith (\n v -> n ++ " " ++ showFFloat (Just 3) v "" ++ ", ") names values
 
 instance Show Vec2 where
+    show :: Vec2 -> String
     show (Vec2 x y) =
         init . init $ showVec ["x","y"] [x,y]
 
 instance Show Vec3 where
+    show :: Vec3 -> String
     show (Vec3 x y z) =
         init . init $ showVec ["x","y","z"] [x,y,z]
 
 instance Show Vec4 where
+    show :: Vec4 -> String
     show (Vec4 x y z w) =
         init . init $ showVec ["x","y","z","w"] [x,y,z,w]
 
@@ -41,6 +45,7 @@ vec3ToVec2 (Vec3 x y _) = Vec2 x y
 
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where
+    compare :: Vec3 -> Vec3 -> Ordering
     compare (Vec3 _ _ z1) (Vec3 _ _ z2) = compare z1 z2
 
 -- | Typeclass for vectors that support dot product
@@ -48,12 +53,15 @@ class Dot a where
     dot :: a -> a -> Double
 
 instance Dot Vec2 where
+    dot :: Vec2 -> Vec2 -> Double
     dot (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
 
 instance Dot Vec3 where
+    dot :: Vec3 -> Vec3 -> Double
     dot (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
 
 instance Dot Vec4 where
+    dot :: Vec4 -> Vec4 -> Double
     dot (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = x1*x2 + y1*y2 + z1*z2 + w1*w2
 
 -- Cross product is only defined for a 3 vector. There is no standard 2 or 4 vector cross product
@@ -62,40 +70,76 @@ cross :: Vec3 -> Vec3 -> Vec3
 cross (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (y1*z2-z1*y2) (z1*x2-x1*z2) (x1*y2-y1*x2)
 
 instance Num Vec2 where
+    (+) :: Vec2 -> Vec2 -> Vec2
     (+) (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
+    (*) :: Vec2 -> Vec2 -> Vec2
     (*) (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1*x2) (y1*y2)
-    abs (Vec2 x y) = Vec2 mag mag where mag = sqrt (x*x + y*y)
-    signum (Vec2 x y) = let mag = sqrt (x*x + y*y) in
-        if mag == 0 then Vec2 0 0 else Vec2 (x/mag) (y/mag)
-    fromInteger n = let a = fromIntegral n in Vec2 a a
-    negate (Vec2 x y) = Vec2 (-x) (-y)
+    abs :: Vec2 -> Vec2
+    abs = (`scalarMult` Vec2 1 1) . magnitude
+    signum :: Vec2 -> Vec2
+    signum v = let mag = magnitude v in
+        if mag == 0 then 0 else (1/mag) `scalarMult` v
+    fromInteger :: Integer -> Vec2
+    fromInteger = (\n -> Vec2 n n) . fromIntegral
+    negate :: Vec2 -> Vec2
+    negate = scalarMult (-1)
 
 instance Num Vec3 where
+    (+) :: Vec3 -> Vec3 -> Vec3
     (+) (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (x1+x2) (y1+y2) (z1+z2)
+    (*) :: Vec3 -> Vec3 -> Vec3
     (*) (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (x1*x2) (y1*y2) (z1*z2)
-    abs (Vec3 x y z) = Vec3 mag mag mag where mag = sqrt (x*x + y*y + z*z)
-    signum (Vec3 x y z) = let mag = sqrt (x*x + y*y + z*z) in
-        if mag == 0 then Vec3 0 0 0 else Vec3 (x/mag) (y/mag) (z/mag)
-    fromInteger n = let a = fromIntegral n in Vec3 a a a
-    negate (Vec3 x y z) = Vec3 (-x) (-y) (-z)
+    abs :: Vec3 -> Vec3
+    abs = (`scalarMult` Vec3 1 1 1) . magnitude
+    signum :: Vec3 -> Vec3
+    signum v = let mag = magnitude v in
+        if mag == 0 then 0 else (1/mag) `scalarMult` v
+    fromInteger :: Integer -> Vec3
+    fromInteger = (\n -> Vec3 n n n) . fromIntegral
+    negate :: Vec3 -> Vec3
+    negate = scalarMult (-1)
 
 instance Num Vec4 where
+    (+) :: Vec4 -> Vec4 -> Vec4
     (+) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1+x2) (y1+y2) (z1+z2) (w1+w2)
+    (*) :: Vec4 -> Vec4 -> Vec4
     (*) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1*x2) (y1*y2) (z1*z2) (w1*w2)
-    abs (Vec4 x y z w) = Vec4 mag mag mag mag where mag = sqrt (x*x + y*y + z*z + w*w)
-    signum (Vec4 x y z w) = let mag = sqrt (x*x + y*y + z*z + w*w) in
-        if mag == 0 then Vec4 0 0 0 0 else Vec4 (x/mag) (y/mag) (z/mag) (w/mag)
-    fromInteger n = let a = fromIntegral n in Vec4 a a a a
-    negate (Vec4 x y z w) = Vec4 (-x) (-y) (-z) (-w)
+    abs :: Vec4 -> Vec4
+    abs = (`scalarMult` Vec4 1 1 1 1) . magnitude
+    signum :: Vec4 -> Vec4
+    signum v = let mag = magnitude v in
+        if mag == 0 then 0 else (1/mag) `scalarMult` v
+    fromInteger :: Integer -> Vec4
+    fromInteger = (\n -> Vec4 n n n n) . fromIntegral
+    negate :: Vec4 -> Vec4
+    negate = scalarMult (-1)
 
 class Magnitude a where
     magnitude :: a -> Double
 
 instance Magnitude Vec2 where
+    magnitude :: Vec2 -> Double
     magnitude (Vec2 x y) = sqrt (x*x + y*y)
 
 instance Magnitude Vec3 where
+    magnitude :: Vec3 -> Double
     magnitude (Vec3 x y z) = sqrt (x*x + y*y + z*z)
 
 instance Magnitude Vec4 where
+    magnitude :: Vec4 -> Double
     magnitude (Vec4 x y z w) = sqrt (x*x + y*y + z*z + w*w)
+
+class ScalarMult a where
+    scalarMult :: Double -> a -> a
+
+instance ScalarMult Vec2 where
+    scalarMult :: Double -> Vec2 -> Vec2
+    scalarMult scalar = (Vec2 scalar scalar *)
+
+instance ScalarMult Vec3 where
+    scalarMult :: Double -> Vec3 -> Vec3
+    scalarMult scalar = (Vec3 scalar scalar scalar *)
+
+instance ScalarMult Vec4 where
+    scalarMult :: Double -> Vec4 -> Vec4
+    scalarMult scalar = (Vec4 scalar scalar scalar scalar *)
