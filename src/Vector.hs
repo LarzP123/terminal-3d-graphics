@@ -75,14 +75,14 @@ instance Num Vec2 where
     (*) :: Vec2 -> Vec2 -> Vec2
     (*) (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1*x2) (y1*y2)
     abs :: Vec2 -> Vec2
-    abs = (`scalarMult` Vec2 1 1) . magnitude
+    abs = (.* 1) . magnitude
     signum :: Vec2 -> Vec2
     signum v = let mag = magnitude v in
-        if mag == 0 then 0 else (1/mag) `scalarMult` v
+        if mag == 0 then 0 else (1/mag) .* v
     fromInteger :: Integer -> Vec2
     fromInteger = (\n -> Vec2 n n) . fromIntegral
     negate :: Vec2 -> Vec2
-    negate = scalarMult (-1)
+    negate = ((-1) .*)
 
 instance Num Vec3 where
     (+) :: Vec3 -> Vec3 -> Vec3
@@ -90,14 +90,14 @@ instance Num Vec3 where
     (*) :: Vec3 -> Vec3 -> Vec3
     (*) (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (x1*x2) (y1*y2) (z1*z2)
     abs :: Vec3 -> Vec3
-    abs = (`scalarMult` Vec3 1 1 1) . magnitude
+    abs = (.* 1) . magnitude
     signum :: Vec3 -> Vec3
     signum v = let mag = magnitude v in
-        if mag == 0 then 0 else (1/mag) `scalarMult` v
+        if mag == 0 then 0 else (1/mag) .* v
     fromInteger :: Integer -> Vec3
     fromInteger = (\n -> Vec3 n n n) . fromIntegral
     negate :: Vec3 -> Vec3
-    negate = scalarMult (-1)
+    negate = ((-1) .*)
 
 instance Num Vec4 where
     (+) :: Vec4 -> Vec4 -> Vec4
@@ -105,14 +105,14 @@ instance Num Vec4 where
     (*) :: Vec4 -> Vec4 -> Vec4
     (*) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1*x2) (y1*y2) (z1*z2) (w1*w2)
     abs :: Vec4 -> Vec4
-    abs = (`scalarMult` Vec4 1 1 1 1) . magnitude
+    abs = (.* 1) . magnitude
     signum :: Vec4 -> Vec4
     signum v = let mag = magnitude v in
-        if mag == 0 then 0 else (1/mag) `scalarMult` v
+        if mag == 0 then 0 else (1/mag) .* v
     fromInteger :: Integer -> Vec4
     fromInteger = (\n -> Vec4 n n n n) . fromIntegral
     negate :: Vec4 -> Vec4
-    negate = scalarMult (-1)
+    negate = ((-1) .*)
 
 class Magnitude a where
     magnitude :: a -> Double
@@ -143,3 +143,7 @@ instance ScalarMult Vec3 where
 instance ScalarMult Vec4 where
     scalarMult :: Double -> Vec4 -> Vec4
     scalarMult scalar = (Vec4 scalar scalar scalar scalar *)
+
+infixl 7 .*  -- left-associative, precedence similar to *
+(.*) :: ScalarMult a => Double -> a -> a
+(.*) = scalarMult
