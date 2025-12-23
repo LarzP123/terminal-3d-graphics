@@ -11,7 +11,7 @@ data Vec3 = Vec3 Double Double Double deriving Eq
 -- | A Vector containing 4 components.
 data Vec4 = Vec4 Double Double Double Double deriving Eq
 
--- Show instances
+-- | Labels all components of a vector and limits the amount of digits shown for each var
 showVec :: [String] -> [Double] -> String
 showVec names values =
     concat $ zipWith (\n v -> n ++ " " ++ showFFloat (Just 3) v "" ++ ", ") names values
@@ -31,38 +31,10 @@ instance Show Vec4 where
     show (Vec4 x y z w) =
         init . init $ showVec ["x","y","z","w"] [x,y,z,w]
 
--- | Convert Vec4 to Vec3 by dropping the w component
-vec4ToVec3 :: Vec4 -> Vec3
-vec4ToVec3 (Vec4 x y z _) = Vec3 x y z
-
--- | Convert Vec4 to Vec2 by dropping z and w
-vec4ToVec2 :: Vec4 -> Vec2
-vec4ToVec2 (Vec4 x y _ _) = Vec2 x y
-
--- | Convert Vec3 to Vec2 by dropping z
-vec3ToVec2 :: Vec3 -> Vec2
-vec3ToVec2 (Vec3 x y _) = Vec2 x y
-
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where
     compare :: Vec3 -> Vec3 -> Ordering
     compare (Vec3 _ _ z1) (Vec3 _ _ z2) = compare z1 z2
-
--- | Typeclass for vectors that support dot product
-class Dot a where
-    dot :: a -> a -> Double
-
-instance Dot Vec2 where
-    dot :: Vec2 -> Vec2 -> Double
-    dot (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
-
-instance Dot Vec3 where
-    dot :: Vec3 -> Vec3 -> Double
-    dot (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
-
-instance Dot Vec4 where
-    dot :: Vec4 -> Vec4 -> Double
-    dot (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = x1*x2 + y1*y2 + z1*z2 + w1*w2
 
 -- Cross product is only defined for a 3 vector. There is no standard 2 or 4 vector cross product
 -- | Vector Cross Product. Creates a new vector perpendicular to the other 2 vectors.
@@ -70,80 +42,110 @@ cross :: Vec3 -> Vec3 -> Vec3
 cross (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (y1*z2-z1*y2) (z1*x2-x1*z2) (x1*y2-y1*x2)
 
 instance Num Vec2 where
+    -- Adds component wise
     (+) :: Vec2 -> Vec2 -> Vec2
     (+) (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1+x2) (y1+y2)
+    -- Multiplies component wise
     (*) :: Vec2 -> Vec2 -> Vec2
     (*) (Vec2 x1 y1) (Vec2 x2 y2) = Vec2 (x1*x2) (y1*y2)
+    -- Replaces the magnitude of the vector for all components
     abs :: Vec2 -> Vec2
     abs = (.* 1) . magnitude
+    -- Normalizes the vector to have magnitude 1. If 0 vector, stays 0 vector
     signum :: Vec2 -> Vec2
     signum v = let mag = magnitude v in
         if mag == 0 then 0 else (1/mag) .* v
+    -- Replicates the integer across all components of the vector
     fromInteger :: Integer -> Vec2
     fromInteger = (\n -> Vec2 n n) . fromIntegral
+    -- Makes the vector point in the opposite direction
     negate :: Vec2 -> Vec2
     negate = ((-1) .*)
 
 instance Num Vec3 where
+    -- Adds component wise
     (+) :: Vec3 -> Vec3 -> Vec3
     (+) (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (x1+x2) (y1+y2) (z1+z2)
+    -- Multiplies component wise
     (*) :: Vec3 -> Vec3 -> Vec3
     (*) (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = Vec3 (x1*x2) (y1*y2) (z1*z2)
+    -- Replaces the magnitude of the vector for all components
     abs :: Vec3 -> Vec3
     abs = (.* 1) . magnitude
+    -- Normalizes the vector to have magnitude 1. If 0 vector, stays 0 vector
     signum :: Vec3 -> Vec3
     signum v = let mag = magnitude v in
         if mag == 0 then 0 else (1/mag) .* v
+    -- Replicates the integer across all components of the vector
     fromInteger :: Integer -> Vec3
     fromInteger = (\n -> Vec3 n n n) . fromIntegral
+    -- Makes the vector point in the opposite direction
     negate :: Vec3 -> Vec3
     negate = ((-1) .*)
 
 instance Num Vec4 where
+    -- Adds component wise
     (+) :: Vec4 -> Vec4 -> Vec4
     (+) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1+x2) (y1+y2) (z1+z2) (w1+w2)
+    -- Multiplies component wise
     (*) :: Vec4 -> Vec4 -> Vec4
     (*) (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = Vec4 (x1*x2) (y1*y2) (z1*z2) (w1*w2)
+    -- Replaces the magnitude of the vector for all components
     abs :: Vec4 -> Vec4
     abs = (.* 1) . magnitude
+    -- Normalizes the vector to have magnitude 1. If 0 vector, stays 0 vector
     signum :: Vec4 -> Vec4
     signum v = let mag = magnitude v in
         if mag == 0 then 0 else (1/mag) .* v
+    -- Replicates the integer across all components of the vector
     fromInteger :: Integer -> Vec4
     fromInteger = (\n -> Vec4 n n n n) . fromIntegral
+    -- Makes the vector point in the opposite direction
     negate :: Vec4 -> Vec4
     negate = ((-1) .*)
 
-class Magnitude a where
-    magnitude :: a -> Double
+-- | A vector contains a series of doubles
+class Vector vec where
+    -- | Returns back a double given the magnitude of the vector in n-dimensional space
+    magnitude :: vec -> Double
+    -- | Multiplies a scalar by the vector (Multiplying all components of the vector by the scalar)
+    scalarMult :: Double -> vec -> vec
+    -- | Does a dot product with the vector
+    dot :: vec -> vec -> Double
+    -- | Converts the vector to a 2 vector. May loose information in the process
+    toVec2 :: vec -> Vec2
 
-instance Magnitude Vec2 where
+instance Vector Vec2 where
     magnitude :: Vec2 -> Double
     magnitude (Vec2 x y) = sqrt (x*x + y*y)
-
-instance Magnitude Vec3 where
-    magnitude :: Vec3 -> Double
-    magnitude (Vec3 x y z) = sqrt (x*x + y*y + z*z)
-
-instance Magnitude Vec4 where
-    magnitude :: Vec4 -> Double
-    magnitude (Vec4 x y z w) = sqrt (x*x + y*y + z*z + w*w)
-
-class ScalarMult a where
-    scalarMult :: Double -> a -> a
-
-instance ScalarMult Vec2 where
     scalarMult :: Double -> Vec2 -> Vec2
     scalarMult scalar = (Vec2 scalar scalar *)
+    dot :: Vec2 -> Vec2 -> Double
+    dot (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
+    toVec2 :: Vec2 -> Vec2
+    toVec2 = id
 
-instance ScalarMult Vec3 where
+instance Vector Vec3 where
+    magnitude :: Vec3 -> Double
+    magnitude (Vec3 x y z) = sqrt (x*x + y*y + z*z)
     scalarMult :: Double -> Vec3 -> Vec3
     scalarMult scalar = (Vec3 scalar scalar scalar *)
+    dot :: Vec3 -> Vec3 -> Double
+    dot (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
+    toVec2 :: Vec3 -> Vec2
+    toVec2 (Vec3 x y _) = Vec2 x y
 
-instance ScalarMult Vec4 where
+instance Vector Vec4 where
+    magnitude :: Vec4 -> Double
+    magnitude (Vec4 x y z w) = sqrt (x*x + y*y + z*z + w*w)
     scalarMult :: Double -> Vec4 -> Vec4
     scalarMult scalar = (Vec4 scalar scalar scalar scalar *)
+    dot :: Vec4 -> Vec4 -> Double
+    dot (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = x1*x2 + y1*y2 + z1*z2 + w1*w2
+    toVec2 :: Vec4 -> Vec2
+    toVec2 (Vec4 x y _ _) = Vec2 x y
 
+-- | Scalar multiplication
 infixl 7 .*  -- left-associative, precedence similar to *
-(.*) :: ScalarMult a => Double -> a -> a
+(.*) :: Vector a => Double -> a -> a
 (.*) = scalarMult
