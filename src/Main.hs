@@ -5,6 +5,7 @@ import Tri
 import Objects
 import Control.Monad.Trans.State
 import Control.Monad.IO.Class (liftIO)
+import Textures
 
 -- String input to move the camera. Takes in string input and the current position to output the new position
 move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
@@ -76,4 +77,9 @@ createWorld =
 
 -- | Entry point
 main :: IO ()
-main = evalStateT (loop createWorld) (Vec3 0 0 0, Vec3 0 0 0)
+main = do
+    pixels <- liftIO $ readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\grass.bmp"
+    liftIO $ putStrLn $ "Loaded BMP with " ++ show (length pixels) ++ " rows"
+    liftIO $ putStrLn $ "First row pixels: " ++ show (head pixels)
+    liftIO $ putStrLn $ "Third row pixels: " ++ show (pixels !! 2)
+    evalStateT (loop createWorld) (Vec3 0 0 0, Vec3 0 0 0)

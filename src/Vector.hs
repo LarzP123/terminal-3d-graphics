@@ -1,35 +1,14 @@
 {-# LANGUAGE InstanceSigs #-}
 module Vector where
-import Numeric
 
--- | A Vector containing 2 components.
-data Vec2 = Vec2 Double Double deriving Eq
+-- | A Vector containing 2 components
+data Vec2 = Vec2 { x_2 :: Double, y_2 :: Double } deriving (Eq, Show)
 
--- | A Vector containing 3 components.
-data Vec3 = Vec3 Double Double Double deriving Eq
+-- | A Vector containing 2 components
+data Vec3 = Vec3 { x_3 :: Double, y_3 :: Double, z_3 :: Double } deriving (Eq, Show)
 
--- | A Vector containing 4 components.
-data Vec4 = Vec4 Double Double Double Double deriving Eq
-
--- | Labels all components of a vector and limits the amount of digits shown for each var
-showVec :: [String] -> [Double] -> String
-showVec names values =
-    concat $ zipWith (\n v -> n ++ " " ++ showFFloat (Just 3) v "" ++ ", ") names values
-
-instance Show Vec2 where
-    show :: Vec2 -> String
-    show (Vec2 x y) =
-        init . init $ showVec ["x","y"] [x,y]
-
-instance Show Vec3 where
-    show :: Vec3 -> String
-    show (Vec3 x y z) =
-        init . init $ showVec ["x","y","z"] [x,y,z]
-
-instance Show Vec4 where
-    show :: Vec4 -> String
-    show (Vec4 x y z w) =
-        init . init $ showVec ["x","y","z","w"] [x,y,z,w]
+-- | A Vector containing 2 components
+data Vec4 = Vec4 { x_4 :: Double, y_4 :: Double, z_4 :: Double , w_4 :: Double} deriving (Eq, Show)
 
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where
