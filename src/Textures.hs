@@ -30,22 +30,22 @@ readBMP :: FilePath -> IO [[RGB]]
 readBMP path = do
     content <- BS.readFile path
     -- Header checks (inside IO, at top-level)
-    when (BS.take 2 content /= BS.pack [66,77]) $
-        error "Not a BMP file"
-    let bytesPerPixel = bytesToInt $ BS.take 2 (BS.drop 28 content) `BS.append` BS.pack [0,0]
-    when (bytesPerPixel /= 24) $
-        error ("Only 24-bit BMP files are supported. File has " ++ show bytesPerPixel ++ "bytes per pixel.")
-    let imagePixelWidth  = bytesToInt $ BS.take 4 $ BS.drop 18 content
-        imagePixelHeight = bytesToInt $ BS.take 4 $ BS.drop 22 content
+    when (BS.take 2 content /= BS.pack [66,77])
+        (error "Not a BMP file")
+    let bytesPerPixel = bytesToInt (BS.take 2 (BS.drop 28 content) `BS.append` BS.pack [0,0])
+    when (bytesPerPixel /= 24)
+        (error ("Only 24-bit BMP files are supported. File has " ++ show bytesPerPixel ++ "bytes per pixel."))
+    let imagePixelWidth  = bytesToInt (BS.take 4 (BS.drop 18 content))
+        imagePixelHeight = bytesToInt (BS.take 4 (BS.drop 22 content))
         -- In a BMP file, the offset is the byte location where pixel data begins
-        offset = bytesToInt $ BS.take 4 $ BS.drop 10 content
+        offset = bytesToInt (BS.take 4 (BS.drop 10 content))
         rowByteCount = ((3*imagePixelWidth + 3) `div` 4) * 4
         pixelBytes = BS.drop offset content
         -- Extract one row of pixels
         getRow y =
             let
                 rowStart = (imagePixelHeight-1-y)*rowByteCount
-                rowBytes = BS.unpack $ BS.take (3*imagePixelWidth) $ BS.drop rowStart pixelBytes
+                rowBytes = BS.unpack (BS.take (3*imagePixelWidth) (BS.drop rowStart pixelBytes))
                 getRemainingRow (b:g:r:rest) = RGB { red = r, green = g, blue = b } : getRemainingRow rest
                 getRemainingRow [] = []
                 getRemainingRow _  = error "Incomplete pixel data"

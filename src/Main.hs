@@ -39,19 +39,19 @@ loop world = do
     liftIO clearScreen
     -- compute screen
     let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
-    let movedTris = (fmap . fmap) (\v -> v - currentPos) world
-    let viewTris = (fmap . fmap) (\v -> multMatVec3 (viewMatrix currentRot) v 1) movedTris
-    let clippedViewTris = clipBehindCamera viewTris
-    let screenTris = get2DTris screenMat clippedViewTris
+        movedTris = (fmap . fmap) (\v -> v - currentPos) world
+        viewTris = (fmap . fmap) (\v -> multMatVec3 (viewMatrix currentRot) v 1) movedTris
+        clippedViewTris = clipBehindCamera viewTris
+        screenTris = get2DTris screenMat clippedViewTris
     -- print screen
-    liftIO $ putStrLn (getScreen screenTris (150, 150))
-    liftIO $ putStrLn $ "Current position: " ++ show currentPos
-    liftIO $ putStrLn $ "Current rotation: " ++ show currentRot
-    liftIO $ putStrLn "Enter command (forward/backward/quit): "
+    liftIO (putStrLn (getScreen screenTris (100, 100)))
+    liftIO (putStrLn ("Current position: " ++ show currentPos))
+    liftIO (putStrLn ("Current rotation: " ++ show currentRot))
+    liftIO (putStrLn "Enter command (forward/backward/quit): ")
     -- get input
     cmd <- liftIO getLine
     if cmd == "quit"
-        then liftIO $ putStrLn "Exiting."
+        then liftIO (putStrLn "Exiting.")
         else do
             -- update state
             modify (\_ -> move cmd currentPos currentRot)
@@ -67,36 +67,36 @@ createWorld = do
     -- Cube in the center
     let cube = cubeFormer cubeTexture
     -- Room dimensions
-    let roomMin = Vec3 (-50) (-20) (-75)
+        roomMin = Vec3 (-50) (-20) (-75)
         roomMax = Vec3 50 50 50
     -- Floor
-    let roomFloor = wallFormer floorTexture
-                (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMin))
-                (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMin))
-                (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMax))
-                (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMax))
+        roomFloor = wallFormer floorTexture
+                (comp3Reduce roomMin roomMin roomMin)
+                (comp3Reduce roomMax roomMin roomMin)
+                (comp3Reduce roomMax roomMin roomMax)
+                (comp3Reduce  roomMin roomMin roomMax)
     -- Walls (front, back, left, right)
-    let wallFront = wallFormer wallTexture
-                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMax))
-                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMax))
-                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMax))
-                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMax))
+        wallFront = wallFormer wallTexture
+                    (comp3Reduce roomMin roomMin roomMax)
+                    (comp3Reduce roomMax roomMin roomMax)
+                    (comp3Reduce roomMax roomMax roomMax)
+                    (comp3Reduce roomMin roomMax roomMax)
         wallBack = wallFormer wallTexture
-                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMin))
-                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMin))
-                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMin))
-                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMin))
+                    (comp3Reduce roomMax roomMin roomMin)
+                    (comp3Reduce roomMin roomMin roomMin)
+                    (comp3Reduce roomMin roomMax roomMin)
+                    (comp3Reduce roomMax roomMax roomMin)
         wallLeft = wallFormer wallTexture
-                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMin))
-                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMax))
-                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMax))
-                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMin))
+                    (comp3Reduce roomMin roomMin roomMin)
+                    (comp3Reduce roomMin roomMin roomMax)
+                    (comp3Reduce roomMin roomMax roomMax)
+                    (comp3Reduce roomMin roomMax roomMin)
         wallRight = wallFormer wallTexture
-                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMax))
-                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMin))
-                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMin))
-                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMax))
-    return $ cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight
+                    (comp3Reduce roomMax roomMin roomMax)
+                    (comp3Reduce roomMax roomMin roomMin)
+                    (comp3Reduce roomMax roomMax roomMin)
+                    (comp3Reduce roomMax roomMax roomMax)
+    return (cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight)
 
 -- | Entry point
 main :: IO ()

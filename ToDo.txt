@@ -1,10 +1,10 @@
-1. Allow textures
 2. Make screensize allow different x and y boundaries
 3. Allow Trees
-4. Make Color it's own type and not a char
 5. Create Spinning Cube Demo
 6. Create Forest Demo
-7. Allow Tri Clipping when near screen
 8. Move Stuff out of the Main Method
 9. Figure out how to export as library
 10. Add Unit Tests
+11. Make cube pick-up able
+12. Make portals
+13. Create travel/physics limits so no clip through objects/walls

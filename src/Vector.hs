@@ -96,9 +96,9 @@ class Vector vec where
     -- | Converts the vector to a 3 vector. May loose information or gain 0s in the process
     toVec3 :: vec -> Vec3
     -- | Gets first component
-    vFirst :: vec -> Double
+    v0 :: vec -> Double
     -- | Gets last component
-    vLast :: vec -> Double
+    vL :: vec -> Double
 
 instance Vector Vec2 where
     magnitude :: Vec2 -> Double
@@ -111,10 +111,10 @@ instance Vector Vec2 where
     toVec2 = id
     toVec3 :: Vec2 -> Vec3
     toVec3 (Vec2 x y) = Vec3 x y 0
-    vFirst :: Vec2 -> Double
-    vFirst (Vec2 x _) = x
-    vLast :: Vec2 -> Double
-    vLast (Vec2 _ y) = y
+    v0 :: Vec2 -> Double
+    v0 (Vec2 x _) = x
+    vL :: Vec2 -> Double
+    vL (Vec2 _ y) = y
 
 instance Vector Vec3 where
     magnitude :: Vec3 -> Double
@@ -127,13 +127,13 @@ instance Vector Vec3 where
     toVec2 (Vec3 x y _) = Vec2 x y
     toVec3 :: Vec3 -> Vec3
     toVec3 = id
-    vFirst :: Vec3 -> Double
-    vFirst (Vec3 x _ _) = x
-    vLast :: Vec3 -> Double
-    vLast (Vec3 _ _ z) = z
+    v0 :: Vec3 -> Double
+    v0 (Vec3 x _ _) = x
+    vL :: Vec3 -> Double
+    vL (Vec3 _ _ z) = z
 
-vMid :: Vec3 -> Double
-vMid (Vec3 _ y _) = y
+vM :: Vec3 -> Double
+vM (Vec3 _ y _) = y
 
 instance Vector Vec4 where
     magnitude :: Vec4 -> Double
@@ -146,10 +146,10 @@ instance Vector Vec4 where
     toVec2 (Vec4 x y _ _) = Vec2 x y
     toVec3 :: Vec4 -> Vec3
     toVec3 (Vec4 x y z _) = Vec3 x y z
-    vFirst :: Vec4 -> Double
-    vFirst (Vec4 x _ _ _) = x
-    vLast :: Vec4 -> Double
-    vLast (Vec4 _ _ _ w) = w
+    v0 :: Vec4 -> Double
+    v0 (Vec4 x _ _ _) = x
+    vL :: Vec4 -> Double
+    vL (Vec4 _ _ _ w) = w
 
 -- | Scalar multiplication
 infixl 7 .*  -- left-associative, precedence similar to *
@@ -160,11 +160,19 @@ infixl 7 .*  -- left-associative, precedence similar to *
 component2 :: (a -> Double) -> a -> a -> Vec2
 component2 f a b = Vec2 (f a) (f b)
 
+comp2Reduce :: Vec2 -> Vec2 -> Vec2
+comp2Reduce a b = Vec2 (v0 a) (vL b)
+
 -- For Vec3 interpolation
 component3 :: (a -> Double) -> a -> a -> a -> Vec3
 component3 f a b c = Vec3 (f a) (f b) (f c)
+
+comp3Reduce :: Vec3 -> Vec3 -> Vec3 -> Vec3
+comp3Reduce a b c = Vec3 (v0 a) (vM b) (vL c)
 
 -- For Vec4 interpolation
 component4 :: (a -> Double) -> a -> a -> a -> a -> Vec4
 component4 f a b c d = Vec4 (f a) (f b) (f c) (f d)
 
+comp4Reduce :: Vec4 -> Vec4 -> Vec4 -> Vec4 -> Vec4
+comp4Reduce a (Vec4 _ bY _ _) (Vec4 _ _ cZ _) d = Vec4 (v0 a) bY cZ (vL d)
