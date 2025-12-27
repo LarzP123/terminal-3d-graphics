@@ -55,7 +55,7 @@ loop world = do
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
     -- print screen
-    liftIO $ putStrLn (getScreen screenTris 30 30)
+    liftIO $ putStrLn (getScreen screenTris (40, 40))
     liftIO $ putStrLn $ "Current position: " ++ show currentPos
     liftIO $ putStrLn $ "Current rotation: " ++ show currentRot
     liftIO $ putStrLn "Enter command (forward/backward/quit): "

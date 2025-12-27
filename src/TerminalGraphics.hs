@@ -2,10 +2,11 @@ module TerminalGraphics where
 import Tri
 import Vector
 import Textures
+import Control.Parallel.Strategies
 
 -- | Clears the terminal
 clearScreen :: IO ()
-clearScreen = putStr "\ESC[2J\ESC[H"
+clearScreen = putStr (concat (replicate 50 "\n") ++ "\ESC[2J\ESC[H")
 
 -- | Get the RGB color of the nearest triangle at a pixel
 getColorOfPixel :: Vec2 -> [Tri Vec3] -> RGB
@@ -26,16 +27,16 @@ colorToANSITRUE (RGB r g b) foreground =
     in "\ESC[" ++ show mode ++ ";2;" ++ show r ++ ";" ++ show g ++ ";" ++ show b ++ "m"
 
 -- | Convert pixel coordinates to normalized screen space centered at 0.5
-toScreenRel :: Int -> Int -> Int -> Int -> Vec2
-toScreenRel x y screenWidth screenHeight =
+toScreenRel :: (Int, Int) -> (Int, Int) -> Vec2
+toScreenRel (x, y) (screenWidth, screenHeight) =
     Vec2 ((fromIntegral x / fromIntegral screenWidth) - 0.5)
          ((fromIntegral y / fromIntegral screenHeight) - 0.5)
 
 -- | Get a colored pixel using true-color, centered properly
-getColored2Pixel :: Int -> Int -> [Tri Vec3] -> Int -> Int -> String
-getColored2Pixel xPix yPix tris screenWidth screenHeight =
+getColored2Pixel :: (Int, Int) -> [Tri Vec3] -> (Int, Int) -> String
+getColored2Pixel pixCoords tris screenDimensions =
     let
-        Vec2 xRel yRel = toScreenRel xPix yPix screenWidth screenHeight
+        Vec2 xRel yRel = toScreenRel pixCoords screenDimensions
 
         color = getColorOfPixel (Vec2 xRel yRel) tris
 
@@ -43,11 +44,18 @@ getColored2Pixel xPix yPix tris screenWidth screenHeight =
         bgCode = colorToANSITRUE color False
     in fgCode ++ bgCode ++ "▀\ESC[0m"
 
--- | Render all triangles to screen
-getScreen :: [Tri Vec3] -> Int -> Int -> String
-getScreen tris screenWidth screenHeight =
-    unlines
-        [ concatMap (\x -> getColored2Pixel x y tris screenWidth screenHeight)
-                    [0 .. screenWidth - 1]
-        | y <- [0,2 .. screenHeight - 1]
-        ]
+-- | Render all triangles to screen (parallel rows)
+getScreen :: [Tri Vec3] -> (Int, Int) -> String
+getScreen tris screenDimensions@(screenWidth, screenHeight) =
+    unlines rows
+  where
+    rows :: [String]
+    rows =
+        parMap rdeepseq renderRow
+            [0,2 .. screenHeight - 1]
+
+    renderRow :: Int -> String
+    renderRow y =
+        concatMap
+            (\x -> getColored2Pixel (x, y) tris screenDimensions)
+            [0 .. screenWidth - 1]
