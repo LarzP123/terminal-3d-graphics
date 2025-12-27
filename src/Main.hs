@@ -55,7 +55,7 @@ loop world = do
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
     -- print screen
-    liftIO $ putStrLn (getScreen screenTris 30)
+    liftIO $ putStrLn (getScreen screenTris 30 30)
     liftIO $ putStrLn $ "Current position: " ++ show currentPos
     liftIO $ putStrLn $ "Current rotation: " ++ show currentRot
     liftIO $ putStrLn "Enter command (forward/backward/quit): "
@@ -68,18 +68,18 @@ loop world = do
             modify (\_ -> move cmd currentPos currentRot)
             loop world
 
--- | Create World
-createWorld :: [Tri Vec3]
-createWorld =
-    let
-        farCube = (fmap . fmap) (+ Vec3 0 0 40) cube
-    in farCube
+-- | Create World with textured cube
+createWorld :: IO [Tri Vec3]
+createWorld = do
+    -- Load texture
+    cubeTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\grass.bmp"
+    -- Form cube with texture
+    let cube = cubeFormer cubeTexture
+    -- Optionally translate cube in Z
+    return cube
 
 -- | Entry point
 main :: IO ()
 main = do
-    pixels <- liftIO $ readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\grass.bmp"
-    liftIO $ putStrLn $ "Loaded BMP with " ++ show (length pixels) ++ " rows"
-    liftIO $ putStrLn $ "First row pixels: " ++ show (head pixels)
-    liftIO $ putStrLn $ "Third row pixels: " ++ show (pixels !! 2)
-    evalStateT (loop createWorld) (Vec3 0 0 0, Vec3 0 0 0)
+    world <- createWorld
+    evalStateT (loop world) (Vec3 (-35) (-35) 0, Vec3 0.8 (-1.0) 0)

@@ -2,13 +2,13 @@
 module Vector where
 
 -- | A Vector containing 2 components
-data Vec2 = Vec2 { x_2 :: Double, y_2 :: Double } deriving (Eq, Show)
+data Vec2 = Vec2 Double Double deriving (Eq, Show)
 
--- | A Vector containing 2 components
-data Vec3 = Vec3 { x_3 :: Double, y_3 :: Double, z_3 :: Double } deriving (Eq, Show)
+-- | A Vector containing 3 components
+data Vec3 = Vec3 Double Double Double deriving (Eq, Show)
 
--- | A Vector containing 2 components
-data Vec4 = Vec4 { x_4 :: Double, y_4 :: Double, z_4 :: Double , w_4 :: Double} deriving (Eq, Show)
+-- | A Vector containing 4 components
+data Vec4 = Vec4 Double Double Double Double deriving (Eq, Show)
 
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where
@@ -93,6 +93,12 @@ class Vector vec where
     dot :: vec -> vec -> Double
     -- | Converts the vector to a 2 vector. May loose information in the process
     toVec2 :: vec -> Vec2
+    -- | Converts the vector to a 3 vector. May loose information or gain 0s in the process
+    toVec3 :: vec -> Vec3
+    -- | Gets first component
+    vFirst :: vec -> Double
+    -- | Gets last component
+    vLast :: vec -> Double
 
 instance Vector Vec2 where
     magnitude :: Vec2 -> Double
@@ -103,6 +109,12 @@ instance Vector Vec2 where
     dot (Vec2 x1 y1) (Vec2 x2 y2) = x1*x2 + y1*y2
     toVec2 :: Vec2 -> Vec2
     toVec2 = id
+    toVec3 :: Vec2 -> Vec3
+    toVec3 (Vec2 x y) = Vec3 x y 0
+    vFirst :: Vec2 -> Double
+    vFirst (Vec2 x _) = x
+    vLast :: Vec2 -> Double
+    vLast (Vec2 _ y) = y
 
 instance Vector Vec3 where
     magnitude :: Vec3 -> Double
@@ -113,6 +125,12 @@ instance Vector Vec3 where
     dot (Vec3 x1 y1 z1) (Vec3 x2 y2 z2) = x1*x2 + y1*y2 + z1*z2
     toVec2 :: Vec3 -> Vec2
     toVec2 (Vec3 x y _) = Vec2 x y
+    toVec3 :: Vec3 -> Vec3
+    toVec3 = id
+    vFirst :: Vec3 -> Double
+    vFirst (Vec3 x _ _) = x
+    vLast :: Vec3 -> Double
+    vLast (Vec3 _ _ z) = z
 
 instance Vector Vec4 where
     magnitude :: Vec4 -> Double
@@ -123,8 +141,27 @@ instance Vector Vec4 where
     dot (Vec4 x1 y1 z1 w1) (Vec4 x2 y2 z2 w2) = x1*x2 + y1*y2 + z1*z2 + w1*w2
     toVec2 :: Vec4 -> Vec2
     toVec2 (Vec4 x y _ _) = Vec2 x y
+    toVec3 :: Vec4 -> Vec3
+    toVec3 (Vec4 x y z _) = Vec3 x y z
+    vFirst :: Vec4 -> Double
+    vFirst (Vec4 x _ _ _) = x
+    vLast :: Vec4 -> Double
+    vLast (Vec4 _ _ _ w) = w
 
 -- | Scalar multiplication
 infixl 7 .*  -- left-associative, precedence similar to *
 (.*) :: Vector a => Double -> a -> a
 (.*) = scalarMult
+
+-- For Vec2 interpolation
+component2 :: (a -> Double) -> a -> a -> Vec2
+component2 f a b = Vec2 (f a) (f b)
+
+-- For Vec3 interpolation
+component3 :: (a -> Double) -> a -> a -> a -> Vec3
+component3 f a b c = Vec3 (f a) (f b) (f c)
+
+-- For Vec4 interpolation
+component4 :: (a -> Double) -> a -> a -> a -> a -> Vec4
+component4 f a b c d = Vec4 (f a) (f b) (f c) (f d)
+

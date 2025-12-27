@@ -1,36 +1,47 @@
 module Objects where
-import Tri ( Tri(..) )
-import Vector ( Vec3(Vec3) )
+import Tri
+import Vector
+import Textures
 
--- | A cube
-cube :: [Tri Vec3]
-cube =
-    [
-        -- FRONT (z = 10) – white
-        Tri (Vec3 (-10) (-10)  10) (Vec3 10 (-10)  10) (Vec3 10 10  10) 'w',
-        Tri (Vec3 (-10) (-10)  10) (Vec3 10 10  10) (Vec3 (-10) 10  10) 'w',
+-- | Make a cube with 6 faces, each made of 2 triangles, using the same texture
+cubeFormer :: [[RGB]] -> [Tri Vec3]
+cubeFormer tex =
+    let
+        -- Default UVs for a quad split into two triangles
+        uvA = (Vec2 0 0, Vec2 1 0, Vec2 1 1)
+        uvB = (Vec2 0 0, Vec2 1 1, Vec2 0 1)
 
-        -- BACK (z = -10) – yellow
-        Tri (Vec3 10 (-10) (-10)) (Vec3 (-10) (-10) (-10)) (Vec3 (-10) 10 (-10)) 'y',
-        Tri (Vec3 10 (-10) (-10)) (Vec3 (-10) 10 (-10)) (Vec3 10 10 (-10)) 'y',
+        mkFace :: Vec3 -> Vec3 -> Vec3 -> Vec3 -> [Tri Vec3]
+        mkFace v0 v1 v2 v3 =
+            [ Tri v0 v1 v2 (Texture (TextureMapping tex (fst3 uvA) (snd3 uvA) (trd3 uvA)))
+            , Tri v0 v2 v3 (Texture (TextureMapping tex (fst3 uvB) (snd3 uvB) (trd3 uvB)))
+            ]
 
-        -- LEFT (x = -10) – red
-        Tri (Vec3 (-10) (-10) (-10)) (Vec3 (-10) (-10) 10) (Vec3 (-10) 10 10) 'r',
-        Tri (Vec3 (-10) (-10) (-10)) (Vec3 (-10) 10 10) (Vec3 (-10) 10 (-10)) 'r',
+        -- helpers to unpack triples
+        fst3 (x,_,_) = x
+        snd3 (_,y,_) = y
+        trd3 (_,_,z) = z
 
-        -- RIGHT (x = 10) – green
-        Tri (Vec3 10 (-10) 10) (Vec3 10 (-10) (-10)) (Vec3 10 10 (-10)) 'g',
-        Tri (Vec3 10 (-10) 10) (Vec3 10 10 (-10)) (Vec3 10 10 10) 'g',
+        -- Cube corners
+        p000 = Vec3 (-10) (-10) (-10)
+        p001 = Vec3 (-10) (-10) 10
+        p010 = Vec3 (-10) 10 (-10)
+        p011 = Vec3 (-10) 10 10
+        p100 = Vec3 10 (-10) (-10)
+        p101 = Vec3 10 (-10) 10
+        p110 = Vec3 10 10 (-10)
+        p111 = Vec3 10 10 10
 
-        -- TOP (y = 10) – blue
-        Tri (Vec3 (-10) 10 10) (Vec3 10 10 10) (Vec3 10 10 (-10)) 'b',
-        Tri (Vec3 (-10) 10 10) (Vec3 10 10 (-10)) (Vec3 (-10) 10 (-10)) 'b',
+    in concat
+        [ mkFace p001 p101 p111 p011  -- Front
+        , mkFace p100 p000 p010 p110  -- Back
+        , mkFace p000 p001 p011 p010  -- Left
+        , mkFace p101 p100 p110 p111  -- Right
+        , mkFace p011 p111 p110 p010  -- Top
+        , mkFace p000 p100 p101 p001  -- Bottom
+        ]
 
-        -- BOTTOM (y = -10) – cyan
-        Tri (Vec3 (-10) (-10) (-10)) (Vec3 10 (-10) (-10)) (Vec3 10 (-10) 10) 'c',
-        Tri (Vec3 (-10) (-10) (-10)) (Vec3 10 (-10) 10) (Vec3 (-10) (-10) 10) 'c'
-    ]
-
+{-
 tree :: [Tri Vec3]
 tree =
     [
@@ -82,4 +93,4 @@ tree =
         -- Left triangle
         Tri (Vec3 (-8) 0 (-8)) (Vec3 (-8) 0  8) (Vec3 0 12 0) 'g'
     ]
-
+-}

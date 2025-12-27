@@ -1,3 +1,4 @@
+{-# LANGUAGE InstanceSigs #-}
 module Textures where
 
 import qualified Data.ByteString as BS
@@ -6,7 +7,13 @@ import Data.Word
 import Control.Monad
 
 -- | RGB pixel type
-data RGB = RGB { red :: Word8, green :: Word8, blue :: Word8 } deriving Show
+data RGB = RGB { red :: Word8, green :: Word8, blue :: Word8 } deriving (Show, Eq)
+
+-- | says what color wins out if they are both in the same exact spot
+instance Ord RGB where
+    compare :: RGB -> RGB -> Ordering
+    compare (RGB r1 g1 b1) (RGB r2 g2 b2) =
+        compare r1 r2 <> compare g1 g2 <> compare b1 b2
 
 -- | Safe little-endian 32-bit integer from 4 bytes
 bytesToInt :: BS.ByteString -> Int
@@ -44,3 +51,17 @@ readBMP path = do
                 getRemainingRow _  = error "Incomplete pixel data"
             in getRemainingRow rowBytes
     return [ getRow y | y <- [0..imagePixelHeight-1] ]
+
+data TextureMapping a = TextureMapping [[RGB]] a a a deriving Show
+
+data ColorMapping a = Solid RGB | Texture (TextureMapping a) deriving Show
+
+instance Functor TextureMapping where
+    fmap :: (a -> b) -> TextureMapping a -> TextureMapping b
+    fmap f (TextureMapping pixels a b c) =
+        TextureMapping pixels (f a) (f b) (f c)
+
+instance Functor ColorMapping where
+    fmap :: (a -> b) -> ColorMapping a -> ColorMapping b
+    fmap _ (Solid rgb)   = Solid rgb
+    fmap f (Texture tm)  = Texture (fmap f tm)
