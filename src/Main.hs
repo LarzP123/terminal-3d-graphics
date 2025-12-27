@@ -30,17 +30,6 @@ move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
         yawInc = 0.2
         rollInc = 0.2
 
-
--- | Keep only triangles where all vertices have positive Z
-clipBehindCamera :: [Tri Vec3] -> [Tri Vec3]
-clipBehindCamera = filter allVerticesPositiveZ
-  where
-    allVerticesPositiveZ :: Tri Vec3 -> Bool
-    allVerticesPositiveZ (Tri (Vec3 _ _ z1)
-                               (Vec3 _ _ z2)
-                               (Vec3 _ _ z3) _) =
-      z1 > 0 && z2 > 0 && z3 > 0
-
 -- | The game loop using StateT
 loop :: [Tri Vec3] -> StateT (Vec3, Vec3) IO ()
 loop world = do
@@ -49,13 +38,13 @@ loop world = do
     -- clear screen
     liftIO clearScreen
     -- compute screen
-    let screenMat = symmetricPerspectiveMatrix 1 0.6 1 5
+    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
     let movedTris = (fmap . fmap) (\v -> v - currentPos) world
     let viewTris = (fmap . fmap) (\v -> multMatVec3 (viewMatrix currentRot) v 1) movedTris
     let clippedViewTris = clipBehindCamera viewTris
     let screenTris = get2DTris screenMat clippedViewTris
     -- print screen
-    liftIO $ putStrLn (getScreen screenTris (40, 40))
+    liftIO $ putStrLn (getScreen screenTris (150, 150))
     liftIO $ putStrLn $ "Current position: " ++ show currentPos
     liftIO $ putStrLn $ "Current rotation: " ++ show currentRot
     liftIO $ putStrLn "Enter command (forward/backward/quit): "
@@ -68,18 +57,49 @@ loop world = do
             modify (\_ -> move cmd currentPos currentRot)
             loop world
 
--- | Create World with textured cube
+-- | Create World with a cube and a room
 createWorld :: IO [Tri Vec3]
 createWorld = do
-    -- Load texture
-    cubeTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\grass.bmp"
-    -- Form cube with texture
+    -- Load textures
+    cubeTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\cube.bmp"
+    wallTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\wall.bmp"
+    floorTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\floor.bmp"
+    -- Cube in the center
     let cube = cubeFormer cubeTexture
-    -- Optionally translate cube in Z
-    return cube
+    -- Room dimensions
+    let roomMin = Vec3 (-50) (-20) (-75)
+        roomMax = Vec3 50 50 50
+    -- Floor
+    let roomFloor = wallFormer floorTexture
+                (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMin))
+                (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMin))
+                (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMax))
+                (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMax))
+    -- Walls (front, back, left, right)
+    let wallFront = wallFormer wallTexture
+                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMax))
+                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMax))
+                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMax))
+                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMax))
+        wallBack = wallFormer wallTexture
+                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMin))
+                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMin))
+                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMin))
+                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMin))
+        wallLeft = wallFormer wallTexture
+                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMin))
+                    (Vec3 (vFirst roomMin) (vMid roomMin) (vLast roomMax))
+                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMax))
+                    (Vec3 (vFirst roomMin) (vMid roomMax) (vLast roomMin))
+        wallRight = wallFormer wallTexture
+                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMax))
+                    (Vec3 (vFirst roomMax) (vMid roomMin) (vLast roomMin))
+                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMin))
+                    (Vec3 (vFirst roomMax) (vMid roomMax) (vLast roomMax))
+    return $ cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight
 
 -- | Entry point
 main :: IO ()
 main = do
     world <- createWorld
-    evalStateT (loop world) (Vec3 (-35) (-35) 0, Vec3 0.8 (-1.0) 0)
+    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 0 0)

@@ -66,7 +66,7 @@ interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) =
 pointInsideTriColor :: Vec2 -> Tri Vec3 -> ColorMapping Vec2 -> Maybe (RGB, Double)
 pointInsideTriColor p tri colorMapping = do
     barycentricCoords <- barycentricDepth p tri
-    if not (insideTriangle (toVec3 barycentricCoords) && vLast barycentricCoords > 0.1) then Nothing
+    if not (insideTriangle (toVec3 barycentricCoords) && vLast barycentricCoords > 0.01) then Nothing
     else
         let rgb = case colorMapping of
                     Solid c -> c
@@ -79,3 +79,40 @@ get2DTris :: Mat4 -> [Tri Vec3] -> [Tri Vec3]
 get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec3 perspectiveMat a 1)
             (multMatVec3 perspectiveMat b 1)
             (multMatVec3 perspectiveMat c 1) color)
+
+-- | Clip triangles partially behind the camera and interpolate texture
+clipBehindCamera :: [Tri Vec3] -> [Tri Vec3]
+clipBehindCamera = concatMap clipTri
+  where
+    clipTri :: Tri Vec3 -> [Tri Vec3]
+    clipTri (Tri v0 v1 v2 tex) =
+        let vs = [v0,v1,v2]
+            inFront v = vLast v > 0
+            frontVerts = filter inFront vs
+            backVerts  = filter (not . inFront) vs
+        in case length frontVerts of
+            0 -> []  -- fully behind
+            3 -> [Tri v0 v1 v2 tex]  -- fully in front
+            1 ->
+                let f = head frontVerts
+                    [b1,b2] = backVerts
+                    i1 = lerpVertex f b1
+                    i2 = lerpVertex f b2
+                in [Tri f i1 i2 tex]
+            2 ->
+                let [f1,f2] = frontVerts
+                    b = head backVerts
+                    i1 = lerpVertex f1 b
+                    i2 = lerpVertex f2 b
+                in [Tri f1 f2 i2 tex, Tri f1 i2 i1 tex]
+            _ -> error "clipTri: impossible number of front vertices"
+
+-- Interpolate between two vertices at z=0
+lerpVertex :: Vec3 -> Vec3 -> Vec3
+lerpVertex vFront vBack =
+    let t = vLast vFront / (vLast vFront - vLast vBack)  -- intersection at z=0
+    in Vec3
+        (vFirst vFront + t * (vFirst vBack - vFirst vFront))
+        (vMid vFront + t * (vMid vBack - vMid vFront))
+        0.01
+

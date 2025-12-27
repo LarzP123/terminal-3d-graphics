@@ -132,6 +132,9 @@ instance Vector Vec3 where
     vLast :: Vec3 -> Double
     vLast (Vec3 _ _ z) = z
 
+vMid :: Vec3 -> Double
+vMid (Vec3 _ y _) = y
+
 instance Vector Vec4 where
     magnitude :: Vec4 -> Double
     magnitude (Vec4 x y z w) = sqrt (x*x + y*y + z*z + w*w)
