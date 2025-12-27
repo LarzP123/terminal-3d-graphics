@@ -96,7 +96,7 @@ class Vector vec where
     -- | Converts the vector to a 3 vector. May loose information or gain 0s in the process
     toVec3 :: vec -> Vec3
     -- | Gets first component
-    v0 :: vec -> Double
+    vF :: vec -> Double
     -- | Gets last component
     vL :: vec -> Double
 
@@ -111,8 +111,8 @@ instance Vector Vec2 where
     toVec2 = id
     toVec3 :: Vec2 -> Vec3
     toVec3 (Vec2 x y) = Vec3 x y 0
-    v0 :: Vec2 -> Double
-    v0 (Vec2 x _) = x
+    vF :: Vec2 -> Double
+    vF (Vec2 x _) = x
     vL :: Vec2 -> Double
     vL (Vec2 _ y) = y
 
@@ -127,8 +127,8 @@ instance Vector Vec3 where
     toVec2 (Vec3 x y _) = Vec2 x y
     toVec3 :: Vec3 -> Vec3
     toVec3 = id
-    v0 :: Vec3 -> Double
-    v0 (Vec3 x _ _) = x
+    vF :: Vec3 -> Double
+    vF (Vec3 x _ _) = x
     vL :: Vec3 -> Double
     vL (Vec3 _ _ z) = z
 
@@ -146,8 +146,8 @@ instance Vector Vec4 where
     toVec2 (Vec4 x y _ _) = Vec2 x y
     toVec3 :: Vec4 -> Vec3
     toVec3 (Vec4 x y z _) = Vec3 x y z
-    v0 :: Vec4 -> Double
-    v0 (Vec4 x _ _ _) = x
+    vF :: Vec4 -> Double
+    vF (Vec4 x _ _ _) = x
     vL :: Vec4 -> Double
     vL (Vec4 _ _ _ w) = w
 
@@ -161,18 +161,18 @@ component2 :: (a -> Double) -> a -> a -> Vec2
 component2 f a b = Vec2 (f a) (f b)
 
 comp2Reduce :: Vec2 -> Vec2 -> Vec2
-comp2Reduce a b = Vec2 (v0 a) (vL b)
+comp2Reduce a b = Vec2 (vF a) (vL b)
 
 -- For Vec3 interpolation
 component3 :: (a -> Double) -> a -> a -> a -> Vec3
 component3 f a b c = Vec3 (f a) (f b) (f c)
 
 comp3Reduce :: Vec3 -> Vec3 -> Vec3 -> Vec3
-comp3Reduce a b c = Vec3 (v0 a) (vM b) (vL c)
+comp3Reduce a b c = Vec3 (vF a) (vM b) (vL c)
 
 -- For Vec4 interpolation
 component4 :: (a -> Double) -> a -> a -> a -> a -> Vec4
 component4 f a b c d = Vec4 (f a) (f b) (f c) (f d)
 
 comp4Reduce :: Vec4 -> Vec4 -> Vec4 -> Vec4 -> Vec4
-comp4Reduce a (Vec4 _ bY _ _) (Vec4 _ _ cZ _) d = Vec4 (v0 a) bY cZ (vL d)
+comp4Reduce a (Vec4 _ bY _ _) (Vec4 _ _ cZ _) d = Vec4 (vF a) bY cZ (vL d)

@@ -53,7 +53,7 @@ sampleTexture pixels uvCoord =
     let imgHeight = length pixels
         imgWidth  = length (head pixels)
         sloper = uvCoord * Vec2 (fromIntegral (imgWidth  - 1)) (fromIntegral (imgHeight - 1))
-        pixelX = min (imgWidth  - 1) (max 0 (round (v0 sloper)))
+        pixelX = min (imgWidth  - 1) (max 0 (round (vF sloper)))
         pixelY = min (imgHeight - 1) (max 0 (round (vL  sloper)))
     in  (pixels !! pixelY) !! pixelX
 
@@ -62,7 +62,7 @@ interpolateUV :: Vec3 -> ColorMapping Vec2 -> Vec2
 interpolateUV _ (Solid _) = Vec2 0 0  -- unused
 interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) =
     let
-        xVec = component3 v0 uvA uvB uvC
+        xVec = component3 vF uvA uvB uvC
         yVec = component3 vL uvA uvB uvC
     in Vec2 (bary `dot` xVec) (bary `dot` yVec)
 
@@ -116,7 +116,7 @@ lerpVert3 :: Vec3 -> Vec3 -> Vec3
 lerpVert3 vecFont vecBack =
     let t = vL vecFont / (vL vecFont - vL vecBack)  -- intersection at z=0
     in Vec3
-        (v0 vecFont + t * (v0 vecBack - v0 vecFont))
+        (vF vecFont + t * (vF vecBack - vF vecFont))
         (vM vecFont + t * (vM vecBack - vM vecFont))
         0.01
 
