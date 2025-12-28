@@ -167,18 +167,9 @@ instance Vector Vec4 where
     vZ :: Vec4 -> Double
     vZ (Vec4 _ _ z _) = z
 
--- For Vec2 interpolation
-component2 :: (a -> Double) -> a -> a -> Vec2
-component2 f a b = Vec2 (f a) (f b)
-
 -- For Vec3 interpolation
 component3 :: (a -> Double) -> a -> a -> a -> Vec3
 component3 f a b c = Vec3 (f a) (f b) (f c)
 
 comp3Reduce :: Vec3 -> Vec3 -> Vec3 -> Vec3
 comp3Reduce a b c = Vec3 (vF a) (vM b) (vL c)
-
--- For Vec4 interpolation
-component4 :: (a -> Double) -> a -> a -> a -> a -> Vec4
-component4 f a b c d = Vec4 (f a) (f b) (f c) (f d)
-

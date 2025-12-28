@@ -62,7 +62,7 @@ barycentricDepth p (Tri vecA vecB vecC _) =
                 w = (dot00 * dot12 - dot01 * dot02) / denom
                 u = 1 - v - w
 
-                zVec = component3 vZ vecA vecB vecC
+                zVec = Vec3 (vZ vecA) (vZ vecB) (vZ vecC)
                 z = Vec3 u v w `dot` zVec
             in Just (Vec4 u v w z)
 
@@ -98,8 +98,8 @@ interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective = Vec
         i f = bary `dot` component3 f a' b' c' / invW
 
 -- | Return the RGB color at a point inside a triangle, along with interpolated depth
-pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping Vec2 -> Maybe (RGB, Double)
-pointInsideTriColor p tri colorMapping = do
+pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping Vec2 -> Projection -> Maybe (RGB, Double)
+pointInsideTriColor p tri colorMapping proj = do
     barycentricCoords <- barycentricDepth p tri
     if not (insideTriangle (toVec3 barycentricCoords) && vL barycentricCoords > epsilon) then Nothing
     else
@@ -111,7 +111,7 @@ pointInsideTriColor p tri colorMapping = do
                             Vec4 _ _ _ wB = vB
                             Vec4 _ _ _ wC = vC
                             w' = Vec3 wA wB wC
-                        in sampleTexture texturePixels (interpolateUV (toVec3 barycentricCoords) colorMapping w' Perspective)
+                        in sampleTexture texturePixels (interpolateUV (toVec3 barycentricCoords) colorMapping w' proj)
         in Just (rgb, vL barycentricCoords)
 
 -- | Converts a series of 3d triangles to 2d triangles given a camera perspective
@@ -144,16 +144,10 @@ clipBehindCamera = concatMap clipTri
         inFront (vec3, _) = vZ vec3 > epsilon
 
 -- | Interpolate between two vertices at z=0
-lerpVertGroupping :: (Vec3, Vec2) -> (Vec3, Vec2) -> (Vec3, Vec2)
-lerpVertGroupping (vec3Front, vec2Front) (vec3Back, vec2Back) =
-    let t = if vZ vec3Front == vZ vec3Back
+lerpVertGroupping :: (Vector spVec, Num spVec) => (spVec, Vec2) -> (spVec, Vec2) -> (spVec, Vec2)
+lerpVertGroupping (spVecFront, uvVecFront) (spVecBack, uvVecBack) =
+    let t = if vZ (spVecFront - spVecBack) == 2*epsilon
             then 0.5 -- midpoint as fallback
-            else vZ vec3Front / (vZ vec3Front - vZ vec3Back)
-    in (Vec3
-            (vF vec3Front + t * (vF vec3Back - vF vec3Front))
-            (vM vec3Front + t * (vM vec3Back - vM vec3Front))
-            epsilon,
-        Vec2
-            (vF vec2Front + t * (vF vec2Back - vF vec2Front))
-            (vL vec2Front + t * (vL vec2Back - vL vec2Front))
-    )
+            else (vZ spVecFront - 2*epsilon) / (vZ spVecFront - vZ spVecBack)
+    in (spVecFront + vMap (t*) (spVecBack - spVecFront),
+        uvVecFront + vMap (t*) (uvVecBack - uvVecFront))
