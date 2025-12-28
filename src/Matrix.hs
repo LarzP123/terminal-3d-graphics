@@ -31,10 +31,8 @@ multMatVec (Mat4 r1 r2 r3 r4) colV = Vec4 (dot r1 colV) (dot r2 colV) (dot r3 co
 divW :: Vec4 -> Vec4
 divW (Vec4 x y z w) = Vec4 (x/w) (y/w) (z/w) w
 
-multMatVec3 :: Mat4 -> Vec3 -> Double -> Vec3
-multMatVec3 m (Vec3 a b c) w =
-    let Vec4 x y z w' = multMatVec m (Vec4 a b c w)
-    in Vec3 (x / w') (y / w') (z / w')
+matrixMoveRotateWorld :: Mat4 -> Vec3 -> Vec3
+matrixMoveRotateWorld m (Vec3 a b c) = toVec3 (divW (multMatVec m (Vec4 a b c 1)))
 
 -- https://www.mauriciopoppe.com/notes/computer-graphics/viewing/projection-transform/ Eq. 12
 symmetricPerspectiveMatrix :: Double -> Double -> Double -> Double -> Mat4

@@ -4,6 +4,9 @@ import Vector
 import Matrix
 import Textures
 
+-- https://en.wikipedia.org/wiki/Texture_mapping#Rasterisation_algorithms
+data Projection = Affine | Perspective
+
 {-| This is a number that is barely above zero. This is so we can do 3d graphics by making sure every object is
     This is so we can do 3d graphics by making sure every object is in front of you without dividing by zero. -}
 epsilon :: Double
@@ -37,7 +40,7 @@ vertGrouppingsToTri (v3a, _) (v3b, _) (v3c, _) tex | length tex == 1 && length (
 vertGrouppingsToTri (v3a, v2a) (v3b, v2b) (v3c, v2c) tex = Tri v3a v3b v3c (Texture (TextureMapping tex v2a v2b v2c))
 
 -- | Compute barycentric coordinates and depth for a point inside a triangle
-barycentricDepth :: Vec2 -> Tri Vec3 -> Maybe Vec4
+barycentricDepth :: Vec2 -> Tri Vec4 -> Maybe Vec4
 barycentricDepth p (Tri vecA vecB vecC _) =
     let
         vecAtoB = toVec2 (vecB - vecA)
@@ -59,7 +62,7 @@ barycentricDepth p (Tri vecA vecB vecC _) =
                 w = (dot00 * dot12 - dot01 * dot02) / denom
                 u = 1 - v - w
 
-                zVec = component3 vL vecA vecB vecC
+                zVec = component3 vZ vecA vecB vecC
                 z = Vec3 u v w `dot` zVec
             in Just (Vec4 u v w z)
 
@@ -76,20 +79,26 @@ sampleTexture pixels uvCoord =
         imgWidth  = length (head pixels)
         sloper = uvCoord * Vec2 (fromIntegral (imgWidth  - 1)) (fromIntegral (imgHeight - 1))
         pixelX = min (imgWidth  - 1) (max 0 (round (vF sloper)))
-        pixelY = min (imgHeight - 1) (max 0 (round (vL  sloper)))
+        pixelY = min (imgHeight - 1) (max 0 (round (vL sloper)))
     in  (pixels !! pixelY) !! pixelX
 
--- | Interpolate UV coordinates using barycentric weights
-interpolateUV :: Vec3 -> ColorMapping Vec2 -> Vec2
-interpolateUV _ (Solid _) = Vec2 0 0  -- unused
-interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) =
-    let
-        xVec = component3 vF uvA uvB uvC
+-- | Interpolate UV coordinates using barycentric weights (perspective-correct)
+interpolateUV :: Vec3 -> ColorMapping Vec2 -> Vec3 -> Projection -> Vec2
+interpolateUV _ (Solid _) _ _ = Vec2 0 0  -- unused
+interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) _ Affine =
+    let xVec = component3 vF uvA uvB uvC
         yVec = component3 vL uvA uvB uvC
     in Vec2 (bary `dot` xVec) (bary `dot` yVec)
+interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective = Vec2 (i vF) (i vL)
+    where
+        a' = vMap (/ vF w') uvA
+        b' = vMap (/ vM w') uvB
+        c' = vMap (/ vL w') uvC
+        invW = bary `dot` vMap recip w'
+        i f = bary `dot` component3 f a' b' c' / invW
 
 -- | Return the RGB color at a point inside a triangle, along with interpolated depth
-pointInsideTriColor :: Vec2 -> Tri Vec3 -> ColorMapping Vec2 -> Maybe (RGB, Double)
+pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping Vec2 -> Maybe (RGB, Double)
 pointInsideTriColor p tri colorMapping = do
     barycentricCoords <- barycentricDepth p tri
     if not (insideTriangle (toVec3 barycentricCoords) && vL barycentricCoords > epsilon) then Nothing
@@ -97,7 +106,12 @@ pointInsideTriColor p tri colorMapping = do
         let rgb = case colorMapping of
                     Solid c -> c
                     Texture (TextureMapping texturePixels _ _ _) ->
-                        sampleTexture texturePixels (interpolateUV (toVec3 barycentricCoords) colorMapping)
+                        let Tri vA vB vC _ = tri
+                            Vec4 _ _ _ wA = vA
+                            Vec4 _ _ _ wB = vB
+                            Vec4 _ _ _ wC = vC
+                            w' = Vec3 wA wB wC
+                        in sampleTexture texturePixels (interpolateUV (toVec3 barycentricCoords) colorMapping w' Perspective)
         in Just (rgb, vL barycentricCoords)
 
 -- | Converts a series of 3d triangles to 2d triangles given a camera perspective
@@ -127,14 +141,14 @@ clipBehindCamera = concatMap clipTri
                 ([a,b,c], _) -> [vertGrouppingsToTri a b c tex]  -- fully in front
                 _ -> [] -- Fully Behind
         -- testing if the 3d space point is in front of you. 2d space points don't have depth so discarded
-        inFront (vec3, _) = vL vec3 > epsilon
+        inFront (vec3, _) = vZ vec3 > epsilon
 
 -- | Interpolate between two vertices at z=0
 lerpVertGroupping :: (Vec3, Vec2) -> (Vec3, Vec2) -> (Vec3, Vec2)
 lerpVertGroupping (vec3Front, vec2Front) (vec3Back, vec2Back) =
-    let t = if vL vec3Front == vL vec3Back
+    let t = if vZ vec3Front == vZ vec3Back
             then 0.5 -- midpoint as fallback
-            else vL vec3Front / (vL vec3Front - vL vec3Back)
+            else vZ vec3Front / (vZ vec3Front - vZ vec3Back)
     in (Vec3
             (vF vec3Front + t * (vF vec3Back - vF vec3Front))
             (vM vec3Front + t * (vM vec3Back - vM vec3Front))

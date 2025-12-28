@@ -9,7 +9,7 @@ clearScreen :: IO ()
 clearScreen = putStr (concat (replicate 50 "\n") ++ "\ESC[2J\ESC[H")
 
 -- | Get the RGB color of the nearest triangle at a pixel
-getColorOfPixel :: Vec2 -> [Tri Vec3] -> RGB
+getColorOfPixel :: Vec2 -> [Tri Vec4] -> RGB
 getColorOfPixel p tris =
     let candidates =
             [ (d, rgb)
@@ -33,7 +33,7 @@ toScreenRel (x, y) (screenWidth, screenHeight) =
          ((fromIntegral y / fromIntegral screenHeight) - 0.5)
 
 -- | Get a colored pixel using true-color, centered properly
-getColored2Pixel :: (Int, Int) -> [Tri Vec3] -> (Int, Int) -> String
+getColored2Pixel :: (Int, Int) -> [Tri Vec4] -> (Int, Int) -> String
 getColored2Pixel pixCoords tris screenDimensions =
     let
         Vec2 xRel yRel = toScreenRel pixCoords screenDimensions
@@ -45,7 +45,7 @@ getColored2Pixel pixCoords tris screenDimensions =
     in fgCode ++ bgCode ++ "▀\ESC[0m"
 
 -- | Render all triangles to screen (parallel rows)
-getScreen :: [Tri Vec3] -> (Int, Int) -> String
+getScreen :: [Tri Vec4] -> (Int, Int) -> String
 getScreen tris screenDimensions@(screenWidth, screenHeight) =
     unlines rows
   where
