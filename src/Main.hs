@@ -31,10 +31,10 @@ move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
         rollInc = 0.2
 
 -- | The game loop using StateT
-loop :: [Tri Vec3] -> StateT (Vec3, Vec3, Projection) IO ()
+loop :: [Tri Vec3] -> StateT (Vec3, Vec3, Projection, (Int, Int)) IO ()
 loop world = do
     -- get current state
-    (currentPos, currentRot, projection) <- get
+    (currentPos, currentRot, projection, screenSize) <- get
     -- clear screen
     liftIO clearScreen
     -- compute screen
@@ -45,7 +45,7 @@ loop world = do
         screenTris = get2DTris screenMat clippedViewTris
         ntcTris = (fmap .fmap) divW screenTris
     -- print screen
-    liftIO (putStrLn (getScreen ntcTris (100, 100) projection))
+    liftIO (putStrLn (getScreen ntcTris screenSize projection))
     liftIO (putStrLn ("Current position: " ++ show currentPos))
     liftIO (putStrLn ("Current rotation: " ++ show currentRot))
     liftIO (putStrLn "Enter command (forward/backward/quit): ")
@@ -55,7 +55,7 @@ loop world = do
         then liftIO (putStrLn "Exiting.")
         else do
             -- update state
-            modify (\(pos, rot, proj) -> let (pos', rot') = move cmd pos rot in (pos', rot', proj))
+            modify (\(pos, rot, proj, scrnSize) -> let (pos', rot') = move cmd pos rot in (pos', rot', proj, scrnSize))
             loop world
 
 -- | Create World with a cube and a room
@@ -103,4 +103,4 @@ createWorld = do
 main :: IO ()
 main = do
     world <- createWorld
-    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 0 0, Perspective)
+    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 0 0, Perspective, (100, 60))

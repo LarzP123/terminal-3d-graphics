@@ -43,6 +43,12 @@ divW (Vec4 x y z w) = Vec4 (x/w) (y/w) (z/w) w
 rotateWorld :: Mat4 -> Vec3 -> Vec3
 rotateWorld m (Vec3 a b c) = toVec3 (divW (multMatVec m (Vec4 a b c 1)))
 
+screenPerspectiveMatrix :: (Int, Int) -> Double -> Double -> Mat4
+screenPerspectiveMatrix (screenX, screenY) n f =
+    let ratio = fromIntegral screenY / fromIntegral screenX
+        (right, top) = if screenX > screenY then (1, ratio) else (1/ratio, 1)
+    in symmetricPerspectiveMatrix right n top f
+
 -- https://www.mauriciopoppe.com/notes/computer-graphics/viewing/projection-transform/ Eq. 12
 symmetricPerspectiveMatrix :: Double -> Double -> Double -> Double -> Mat4
 symmetricPerspectiveMatrix r n t f = Mat4
