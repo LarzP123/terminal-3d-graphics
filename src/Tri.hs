@@ -21,6 +21,9 @@ instance Functor Tri where
     fmap :: (a -> b) -> Tri a -> Tri b
     fmap f (Tri a b c texMap) = Tri (f a) (f b) (f c) texMap
 
+triToVec :: Tri a -> (a, a, a)
+triToVec (Tri a b c _) = (a, b, c)
+
 {-| This extracts a list of space vertices and UV mapping vertices from a tri. This is so you can do
     transformations on the space vertices and UV vertices at the same time by having them paired.
     If you have a solid color mapping it will just return all of the UV vertices as 0 and create
@@ -86,8 +89,8 @@ sampleTexture pixels uvCoord =
 interpolateUV :: Vec3 -> ColorMapping Vec2 -> Vec3 -> Projection -> Vec2
 interpolateUV _ (Solid _) _ _ = Vec2 0 0  -- unused
 interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) _ Affine =
-    let xVec = component3 vF uvA uvB uvC
-        yVec = component3 vL uvA uvB uvC
+    let xVec = component3 vF (uvA, uvB, uvC)
+        yVec = component3 vL (uvA, uvB, uvC)
     in Vec2 (bary `dot` xVec) (bary `dot` yVec)
 interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective = Vec2 (i vF) (i vL)
     where
@@ -95,7 +98,7 @@ interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective = Vec
         b' = vMap (/ vM w') uvB
         c' = vMap (/ vL w') uvC
         invW = bary `dot` vMap recip w'
-        i f = bary `dot` component3 f a' b' c' / invW
+        i f = bary `dot` component3 f (a', b', c') / invW
 
 -- | Return the RGB color at a point inside a triangle, along with interpolated depth
 pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping Vec2 -> Projection -> Maybe (RGB, Double)
@@ -106,16 +109,13 @@ pointInsideTriColor p tri colorMapping proj = do
         let rgb = case colorMapping of
                     Solid c -> c
                     Texture (TextureMapping texturePixels _ _ _) ->
-                        let Tri vA vB vC _ = tri
-                            Vec4 _ _ _ wA = vA
-                            Vec4 _ _ _ wB = vB
-                            Vec4 _ _ _ wC = vC
-                            w' = Vec3 wA wB wC
-                        in sampleTexture texturePixels (interpolateUV (toVec3 barycentricCoords) colorMapping w' proj)
+                        let w' = component3 vL (triToVec tri)
+                            interpUv = interpolateUV (toVec3 barycentricCoords) colorMapping w' proj
+                        in sampleTexture texturePixels interpUv
         in Just (rgb, vL barycentricCoords)
 
--- | Converts a series of 3d triangles to 2d triangles given a camera perspective
-get2DTris :: Mat4 -> [Tri Vec3] -> [Tri Vec4]
+-- | Converts triangles with coordinates in n dimensional space to triangles projected onto 2d space given a camera perspective
+get2DTris :: Vector spVec => Mat4 -> [Tri spVec] -> [Tri Vec4]
 get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec perspectiveMat (toVec4 a))
             (multMatVec perspectiveMat (toVec4 b))
             (multMatVec perspectiveMat (toVec4 c)) color)
@@ -144,7 +144,7 @@ clipBehindCamera = concatMap clipTri
         inFront (vec3, _) = vZ vec3 > epsilon
 
 -- | Interpolate between two vertices at z=0
-lerpVertGroupping :: (Vector spVec, Num spVec) => (spVec, Vec2) -> (spVec, Vec2) -> (spVec, Vec2)
+lerpVertGroupping :: Vector spVec => (spVec, Vec2) -> (spVec, Vec2) -> (spVec, Vec2)
 lerpVertGroupping (spVecFront, uvVecFront) (spVecBack, uvVecBack) =
     let t = if vZ (spVecFront - spVecBack) == 2*epsilon
             then 0.5 -- midpoint as fallback

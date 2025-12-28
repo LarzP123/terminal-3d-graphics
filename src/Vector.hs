@@ -84,7 +84,7 @@ instance Num Vec4 where
     negate = vMap (*(-1))
 
 -- | A vector contains a series of doubles
-class Vector vec where
+class Num vec => Vector vec where
     -- | Returns back a double given the magnitude of the vector in n-dimensional space
     magnitude :: vec -> Double
     -- | Multiplies a scalar by the vector (Multiplying all components of the vector by the scalar)
@@ -168,8 +168,8 @@ instance Vector Vec4 where
     vZ (Vec4 _ _ z _) = z
 
 -- For Vec3 interpolation
-component3 :: (a -> Double) -> a -> a -> a -> Vec3
-component3 f a b c = Vec3 (f a) (f b) (f c)
+component3 :: (a -> Double) -> (a, a, a) -> Vec3
+component3 f (a, b, c) = Vec3 (f a) (f b) (f c)
 
 comp3Reduce :: Vec3 -> Vec3 -> Vec3 -> Vec3
 comp3Reduce a b c = Vec3 (vF a) (vM b) (vL c)

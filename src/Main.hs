@@ -40,7 +40,7 @@ loop world = do
     -- compute screen
     let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
         movedTris = (fmap . fmap) (\v -> v - currentPos) world
-        viewTris = (fmap . fmap) (matrixMoveRotateWorld (viewMatrix currentRot)) movedTris
+        viewTris = (fmap . fmap) (rotateWorld (rotationMatrix currentRot)) movedTris
         clippedViewTris = clipBehindCamera viewTris
         screenTris = get2DTris screenMat clippedViewTris
         ntcTris = (fmap .fmap) divW screenTris
