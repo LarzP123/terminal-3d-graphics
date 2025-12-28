@@ -85,7 +85,7 @@ get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec3 perspecti
             (multMatVec3 perspectiveMat c 1) color)
 
 {-
-This function is currently pretty bad. It will clip the 3d tri but not the 2d tri mapping the texture onto it.
+This function is currently dogshit. It will clip the 3d tri but not the 2d tri mapping the texture onto it.
 This means tris with 1 vertex in front currently just smear everywhere and tris with 2 vertices in front compress
 the texture to be smaller than it should be.
 -}
@@ -111,7 +111,7 @@ clipBehindCamera = concatMap clipTri
                 _ -> [] -- Fully Behind
         inFront v = vL v > 0.01
 
--- Interpolate between two vertices at z=0
+-- | Interpolate between two vertices at z=0
 lerpVert3 :: Vec3 -> Vec3 -> Vec3
 lerpVert3 vecFont vecBack =
     let t = vL vecFont / (vL vecFont - vL vecBack)  -- intersection at z=0
@@ -120,3 +120,14 @@ lerpVert3 vecFont vecBack =
         (vM vecFont + t * (vM vecBack - vM vecFont))
         0.01
 
+-- Interpolate between two vertices at z=0
+lerpUvMapping :: Vec3 -> Vec3 -> ColorMapping Vec2 -> ColorMapping Vec2
+-- If we have a solid color, we don't need to determine the texture mapping since there is no texture
+lerpUvMapping _ _ (Solid color) = Solid color
+-- If we have an actual texture, we need to re-stretch the texture to not show pieces of the texture that are off screen
+lerpUvMapping vec3Front vec3Back (Texture (TextureMapping tex v2a v2b v2c)) =
+    let t = vL vec3Front / (vL vec3Front - vL vec3Back)  -- intersection at z=0
+    in Vec3
+        (vF vecFont + t * (vF vecBack - vF vecFont))
+        (vM vecFont + t * (vM vecBack - vM vecFont))
+        0.01Texture (TextureMapping a b c d)
