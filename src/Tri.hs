@@ -11,8 +11,20 @@ instance Functor Tri where
     fmap :: (a -> b) -> Tri a -> Tri b
     fmap f (Tri a b c texMap) = Tri (f a) (f b) (f c) texMap
 
-splitTri :: Tri a -> ([a], ColorMapping Vec2)
-splitTri (Tri a b c tex) = ([a, b, c], tex)
+-- | Groups the space vertex with the corresponding UV vertex for mapping the texture
+triToVertGrouppings :: Tri a -> ([(a, Vec2)], [[RGB]])
+triToVertGrouppings (Tri a b c (Solid color)) = ([(a, 0), (b, 0), (c, 0)], [[color]])
+triToVertGrouppings (Tri v3a v3b v3c (Texture (TextureMapping tex v2a v2b v2c))) = ([(v3a, v2a), (v3b, v2b), (v3c, v2c)], tex)
+
+-- | Turns space vertex and UV vertex mapping pairs and a texture int a Tri object
+vertGrouppingsToTri :: (a, Vec2) -> (a, Vec2) -> (a, Vec2) -> [[RGB]] -> Tri a
+-- If we have a bunch of zero vectors for the UV vectors, there is no real interpolation to be done and it will just be a solid color
+vertGrouppingsToTri (v3a, 0) (v3b, 0) (v3c, 0) tex = Tri v3a v3b v3c (Solid (head (head tex)))
+-- If the texture is just one color, then we can just represent it as a type color and not need to do interpolation
+vertGrouppingsToTri (v3a, _) (v3b, _) (v3c, _) tex | length tex == 1 && length (head tex) == 1 =
+    Tri v3a v3b v3c (Solid (head (head tex)))
+-- default case. This returns a texture mapping with uv coords
+vertGrouppingsToTri (v3a, v2a) (v3b, v2b) (v3c, v2c) tex = Tri v3a v3b v3c (Texture (TextureMapping tex v2a v2b v2c))
 
 -- | Compute barycentric coordinates and depth for a point inside a triangle
 barycentricDepth :: Vec2 -> Tri Vec3 -> Maybe Vec4
@@ -84,50 +96,40 @@ get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec3 perspecti
             (multMatVec3 perspectiveMat b 1)
             (multMatVec3 perspectiveMat c 1) color)
 
-{-
-This function is currently dogshit. It will clip the 3d tri but not the 2d tri mapping the texture onto it.
-This means tris with 1 vertex in front currently just smear everywhere and tris with 2 vertices in front compress
-the texture to be smaller than it should be.
--}
--- | Clip triangles partially behind the camera
+-- | Clip triangles partially behind the camera and re-maps their textures
 clipBehindCamera :: [Tri Vec3] -> [Tri Vec3]
 clipBehindCamera = concatMap clipTri
     where
         clipTri :: Tri Vec3 -> [Tri Vec3]
         clipTri vec =
-            let (verts, tex) = splitTri vec
+            let (verts, tex) = triToVertGrouppings vec
                 frontVerts = filter inFront verts
                 backVerts = filter (not . inFront) verts
             in case (frontVerts, backVerts) of
                 ([f], [b1,b2]) ->
-                    let i1 = lerpVert3 f b1
-                        i2 = lerpVert3 f b2
-                    in [Tri f i1 i2 tex]
+                    let i1 = lerpVertGroupping f b1
+                        i2 = lerpVertGroupping f b2
+                    in [vertGrouppingsToTri f i1 i2 tex]
                 ([f1,f2], [b]) ->
-                    let i1 = lerpVert3 f1 b
-                        i2 = lerpVert3 f2 b
-                    in [ Tri f1 f2 i2 tex, Tri f1 i2 i1 tex]
-                ([a,b,c], _) -> [Tri a b c tex]  -- fully in front
+                    let i1 = lerpVertGroupping f1 b
+                        i2 = lerpVertGroupping f2 b
+                    in [vertGrouppingsToTri f1 f2 i2 tex, vertGrouppingsToTri f1 i2 i1 tex]
+                ([a,b,c], _) -> [vertGrouppingsToTri a b c tex]  -- fully in front
                 _ -> [] -- Fully Behind
-        inFront v = vL v > 0.01
+        -- testing if the 3d space point is in front of you. 2d space points don't have depth so discarded
+        inFront (vec3, _) = vL vec3 > 0.01
 
 -- | Interpolate between two vertices at z=0
-lerpVert3 :: Vec3 -> Vec3 -> Vec3
-lerpVert3 vecFont vecBack =
-    let t = vL vecFont / (vL vecFont - vL vecBack)  -- intersection at z=0
-    in Vec3
-        (vF vecFont + t * (vF vecBack - vF vecFont))
-        (vM vecFont + t * (vM vecBack - vM vecFont))
-        0.01
-
--- Interpolate between two vertices at z=0
-lerpUvMapping :: Vec3 -> Vec3 -> ColorMapping Vec2 -> ColorMapping Vec2
--- If we have a solid color, we don't need to determine the texture mapping since there is no texture
-lerpUvMapping _ _ (Solid color) = Solid color
--- If we have an actual texture, we need to re-stretch the texture to not show pieces of the texture that are off screen
-lerpUvMapping vec3Front vec3Back (Texture (TextureMapping tex v2a v2b v2c)) =
-    let t = vL vec3Front / (vL vec3Front - vL vec3Back)  -- intersection at z=0
-    in Vec3
-        (vF vecFont + t * (vF vecBack - vF vecFont))
-        (vM vecFont + t * (vM vecBack - vM vecFont))
-        0.01Texture (TextureMapping a b c d)
+lerpVertGroupping :: (Vec3, Vec2) -> (Vec3, Vec2) -> (Vec3, Vec2)
+lerpVertGroupping (vec3Front, vec2Front) (vec3Back, vec2Back) =
+    let t = if vL vec3Front == vL vec3Back
+            then 0.5  -- midpoint as fallback
+            else vL vec3Front / (vL vec3Front - vL vec3Back)
+    in (Vec3
+        (vF vec3Front + t * (vF vec3Back - vF vec3Front))
+        (vM vec3Front + t * (vM vec3Back - vM vec3Front))
+        0.01,
+        Vec2
+        (vF vec2Front + t * (vF vec2Back - vF vec2Front))
+        (vL vec2Front + t * (vL vec2Back - vL vec2Front))
+    )
