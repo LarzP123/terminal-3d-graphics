@@ -101,10 +101,10 @@ pointInsideTriColor p tri colorMapping = do
         in Just (rgb, vL barycentricCoords)
 
 -- | Converts a series of 3d triangles to 2d triangles given a camera perspective
-get2DTris :: Mat4 -> [Tri Vec3] -> [Tri Vec3]
-get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec3 perspectiveMat a 1)
-            (multMatVec3 perspectiveMat b 1)
-            (multMatVec3 perspectiveMat c 1) color)
+get2DTris :: Mat4 -> [Tri Vec3] -> [Tri Vec4]
+get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec perspectiveMat (toVec4 a))
+            (multMatVec perspectiveMat (toVec4 b))
+            (multMatVec perspectiveMat (toVec4 c)) color)
 
 -- | Clip triangles partially behind the camera and re-maps their textures
 clipBehindCamera :: [Tri Vec3] -> [Tri Vec3]

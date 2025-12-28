@@ -95,10 +95,14 @@ class Vector vec where
     toVec2 :: vec -> Vec2
     -- | Converts the vector to a 3 vector. May loose information or gain 0s in the process
     toVec3 :: vec -> Vec3
+    -- | Converts the vector to a 4 vector. Gain 0 for z if not given, gain 1 for w if not given
+    toVec4 :: vec -> Vec4
     -- | Gets first component
     vF :: vec -> Double
     -- | Gets last component
     vL :: vec -> Double
+    -- | Gets Z component
+    vZ :: vec -> Double
 
 instance Vector Vec2 where
     magnitude :: Vec2 -> Double
@@ -111,10 +115,14 @@ instance Vector Vec2 where
     toVec2 = id
     toVec3 :: Vec2 -> Vec3
     toVec3 (Vec2 x y) = Vec3 x y 0
+    toVec4 :: Vec2 -> Vec4
+    toVec4 (Vec2 x y) = Vec4 x y 0 1
     vF :: Vec2 -> Double
     vF (Vec2 x _) = x
     vL :: Vec2 -> Double
     vL (Vec2 _ y) = y
+    vZ :: Vec2 -> Double
+    vZ (Vec2 _ _) = 0
 
 instance Vector Vec3 where
     magnitude :: Vec3 -> Double
@@ -127,10 +135,14 @@ instance Vector Vec3 where
     toVec2 (Vec3 x y _) = Vec2 x y
     toVec3 :: Vec3 -> Vec3
     toVec3 = id
+    toVec4 :: Vec3 -> Vec4
+    toVec4 (Vec3 x y z) = Vec4 x y z 1
     vF :: Vec3 -> Double
     vF (Vec3 x _ _) = x
     vL :: Vec3 -> Double
     vL (Vec3 _ _ z) = z
+    vZ :: Vec3 -> Double
+    vZ (Vec3 _ _ z) = z
 
 vM :: Vec3 -> Double
 vM (Vec3 _ y _) = y
@@ -146,10 +158,14 @@ instance Vector Vec4 where
     toVec2 (Vec4 x y _ _) = Vec2 x y
     toVec3 :: Vec4 -> Vec3
     toVec3 (Vec4 x y z _) = Vec3 x y z
+    toVec4 :: Vec4 -> Vec4
+    toVec4 = id
     vF :: Vec4 -> Double
     vF (Vec4 x _ _ _) = x
     vL :: Vec4 -> Double
     vL (Vec4 _ _ _ w) = w
+    vZ :: Vec4 -> Double
+    vZ (Vec4 _ _ z _) = z
 
 -- | Scalar multiplication
 infixl 7 .*  -- left-associative, precedence similar to *

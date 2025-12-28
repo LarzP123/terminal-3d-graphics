@@ -43,8 +43,10 @@ loop world = do
         viewTris = (fmap . fmap) (\v -> multMatVec3 (viewMatrix currentRot) v 1) movedTris
         clippedViewTris = clipBehindCamera viewTris
         screenTris = get2DTris screenMat clippedViewTris
+        ntcTris = (fmap .fmap) divW screenTris
+        testTris = (fmap .fmap) toVec3 ntcTris
     -- print screen
-    liftIO (putStrLn (getScreen screenTris (100, 100)))
+    liftIO (putStrLn (getScreen testTris (100, 100)))
     liftIO (putStrLn ("Current position: " ++ show currentPos))
     liftIO (putStrLn ("Current rotation: " ++ show currentRot))
     liftIO (putStrLn "Enter command (forward/backward/quit): ")

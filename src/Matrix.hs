@@ -28,6 +28,9 @@ multMatMat m1 (Mat4 r1 r2 r3 r4) =
 multMatVec :: Mat4 -> Vec4 -> Vec4
 multMatVec (Mat4 r1 r2 r3 r4) colV = Vec4 (dot r1 colV) (dot r2 colV) (dot r3 colV) (dot r4 colV)
 
+divW :: Vec4 -> Vec4
+divW (Vec4 x y z w) = Vec4 (x/w) (y/w) (z/w) w
+
 multMatVec3 :: Mat4 -> Vec3 -> Double -> Vec3
 multMatVec3 m (Vec3 a b c) w =
     let Vec4 x y z w' = multMatVec m (Vec4 a b c w)
