@@ -6,17 +6,17 @@ import Objects
 import Control.Monad.Trans.State
 import Control.Monad.IO.Class (liftIO)
 import Textures
-import Lighting (bakeLight, Light (Ray))
+import Lighting (bakeLight, Light (Ray, Ambient))
 
 -- String input to move the camera. Takes in string input and the current position to output the new position
 move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
 move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
     case cmd of
         -- Strafing
-        "forward"  -> (Vec3 x       y (z + 1), rot)
-        "backward" -> (Vec3 x       y (z - 1), rot)
-        "left"     -> (Vec3 (x + 1) y z      , rot)
-        "right"    -> (Vec3 (x - 1) y z      , rot)
+        "forward"  -> (Vec3 x       y (z + speed), rot)
+        "backward" -> (Vec3 x       y (z - speed), rot)
+        "left"     -> (Vec3 (x + speed) y z      , rot)
+        "right"    -> (Vec3 (x - speed) y z      , rot)
         -- Rotating
         "turn left"  -> (pos, Vec3 pitch (yaw - yawInc) roll)
         "turn right" -> (pos, Vec3 pitch (yaw + yawInc) roll)
@@ -30,6 +30,7 @@ move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
         pitchInc = 0.2
         yawInc = 0.2
         rollInc = 0.2
+        speed = 5
 
 -- | The game loop using StateT
 loop :: [Tri Vec3] -> StateT (Vec3, Vec3, Projection, (Int, Int)) IO ()
@@ -72,11 +73,11 @@ createWorld = do
         roomMin = Vec3 (-50) (-20) (-75)
         roomMax = Vec3 50 50 50
     -- Floor
-        roomFloor = wallFormer floorTexture
+        roomFloor = fmap flipTri (wallFormer floorTexture
                 (comp3Reduce roomMin roomMin roomMin)
                 (comp3Reduce roomMax roomMin roomMin)
                 (comp3Reduce roomMax roomMin roomMax)
-                (comp3Reduce  roomMin roomMin roomMax)
+                (comp3Reduce  roomMin roomMin roomMax))
     -- Walls (front, back, left, right)
         wallFront = wallFormer wallTexture
                     (comp3Reduce roomMin roomMin roomMax)
@@ -98,9 +99,9 @@ createWorld = do
                     (comp3Reduce roomMax roomMin roomMin)
                     (comp3Reduce roomMax roomMax roomMin)
                     (comp3Reduce roomMax roomMax roomMax)
-        directionalLight = Ray (Vec3 1 1 0)
+        lights = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
         world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight
-        lightedWorld = fmap (bakeLight [directionalLight]) world
+        lightedWorld = fmap (bakeLight lights) world
     return lightedWorld
 
 -- | Entry point

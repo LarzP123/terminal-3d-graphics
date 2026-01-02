@@ -24,7 +24,7 @@ cubeFormer tex =
         p111 = Vec3 10 10 10
     in concat
         [ wallFormer tex p001 p101 p111 p011  -- Front
-        , wallFormer tex p100 p000 p010 p110  -- Back
+        , fmap flipTri (wallFormer tex p100 p000 p010 p110)  -- Back
         , wallFormer tex p000 p001 p011 p010  -- Left
         , wallFormer tex p101 p100 p110 p111  -- Right
         , wallFormer tex p011 p111 p110 p010  -- Top

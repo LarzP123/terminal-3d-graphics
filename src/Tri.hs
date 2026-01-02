@@ -17,6 +17,17 @@ epsilon = 0.0001
     vec2 UV texture mapping based on the order they are listed in. -}
 data Tri a = Tri a a a (ColorMapping Vec2) deriving Show
 
+getNorm :: Tri Vec3 -> Vec3
+getNorm (Tri v1 v2 v3 _) =
+    let edge1 = v2 - v1 -- vector from v1 to v2
+        edge2 = v3 - v1 -- vector from v1 to v3
+    in cross edge1 edge2
+
+-- | Flips the normal of a triangle by reversing its winding. Need this for lighting to be effecient
+flipTri :: Tri a -> Tri a
+flipTri (Tri vA vB vC (Texture(TextureMapping tex uvA uvB uvC))) = Tri vA vC vB (Texture(TextureMapping tex uvA uvC uvB))
+flipTri (Tri vA vB vC (Solid col)) = Tri vA vC vB (Solid col)
+
 instance Functor Tri where
     fmap :: (a -> b) -> Tri a -> Tri b
     fmap f (Tri a b c texMap) = Tri (f a) (f b) (f c) texMap
