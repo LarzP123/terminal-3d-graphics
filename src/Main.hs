@@ -6,6 +6,7 @@ import Objects
 import Control.Monad.Trans.State
 import Control.Monad.IO.Class (liftIO)
 import Textures
+import Lighting (bakeLight, Light (Ray))
 
 -- String input to move the camera. Takes in string input and the current position to output the new position
 move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
@@ -97,10 +98,13 @@ createWorld = do
                     (comp3Reduce roomMax roomMin roomMin)
                     (comp3Reduce roomMax roomMax roomMin)
                     (comp3Reduce roomMax roomMax roomMax)
-    return (cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight)
+        directionalLight = Ray (Vec3 1 1 0)
+        world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight
+        lightedWorld = fmap (bakeLight [directionalLight]) world
+    return lightedWorld
 
 -- | Entry point
 main :: IO ()
 main = do
     world <- createWorld
-    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 0 0, Perspective, (100, 60))
+    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 0 0, Perspective, (100, 100))

@@ -15,6 +15,11 @@ instance Ord RGB where
     compare (RGB r1 g1 b1) (RGB r2 g2 b2) =
         compare r1 r2 <> compare g1 g2 <> compare b1 b2
 
+-- | Maps numeric operations onto the color values of an RGB to change brightess.
+brightMap :: (Double -> Double) -> RGB -> RGB
+brightMap f (RGB r g b) = RGB { red = fdoub r, green = fdoub g, blue = fdoub b }
+    where fdoub = round . max 0 . min 255 . f . fromIntegral
+
 -- | Safe little-endian 32-bit integer from 4 bytes
 bytesToInt :: BS.ByteString -> Int
 bytesToInt bs
