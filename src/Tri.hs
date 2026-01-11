@@ -150,10 +150,6 @@ clipTri (Tri vA vB vC (Portal flipPort v2A v2B v2C)) =
     map (\((vA', vB', vC'), (v2A', v2B', v2C')) -> Tri vA' vB' vC' (Portal flipPort v2A' v2B' v2C')) clippedCoords
     where clippedCoords = clipTriGeneric ((vA,vB,vC),(v2A,v2B,v2C))
 
--- | Clip triangles partially behind the camera and re-maps their textures
-clipBehindCamera :: [Tri Vec3] -> [Tri Vec3]
-clipBehindCamera = concatMap clipTri
-
 -- | Interpolate between two vertices at z=0
 lerpVertGroupping :: (Vector spVec, Vector mapVec) => (spVec, mapVec) -> (spVec, mapVec) -> (spVec, mapVec)
 lerpVertGroupping (spVecFront, uvVecFront) (spVecBack, uvVecBack) =
