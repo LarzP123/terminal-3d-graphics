@@ -58,15 +58,3 @@ readBMP path = do
     return [ getRow y | y <- [0..imagePixelHeight-1] ]
 
 data TextureMapping a = TextureMapping [[RGB]] a a a deriving Show
-
-data ColorMapping a = Solid RGB | Texture (TextureMapping a) deriving Show
-
-instance Functor TextureMapping where
-    fmap :: (a -> b) -> TextureMapping a -> TextureMapping b
-    fmap f (TextureMapping pixels a b c) =
-        TextureMapping pixels (f a) (f b) (f c)
-
-instance Functor ColorMapping where
-    fmap :: (a -> b) -> ColorMapping a -> ColorMapping b
-    fmap _ (Solid rgb)   = Solid rgb
-    fmap f (Texture tm)  = Texture (fmap f tm)
