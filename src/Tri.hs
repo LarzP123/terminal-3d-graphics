@@ -118,17 +118,12 @@ get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec perspectiv
             (multMatVec perspectiveMat (toVec4 b))
             (multMatVec perspectiveMat (toVec4 c)) color)
 
-inFront :: Vec3 -> Bool
-inFront vec = vZ vec > epsilon
-inFront2 :: (Vec3, a) -> Bool
-inFront2 (vec, _) = vZ vec > epsilon
-
 clipTriGeneric :: (Vector mapVec) => ((Vec3, Vec3, Vec3), (mapVec, mapVec, mapVec)) -> [((Vec3, Vec3, Vec3), (mapVec, mapVec, mapVec))]
 clipTriGeneric ((vA, vB, vC), (v2A, v2B, v2C)) =
     let
         groupedVerts = [(vA,v2A), (vB,v2B), (vC,v2C)]
-        frontVerts = filter inFront2 groupedVerts
-        backVerts = filter (not . inFront2) groupedVerts
+        frontVerts = filter inFront groupedVerts
+        backVerts = filter (not . inFront) groupedVerts
     in case (frontVerts, backVerts) of
         ([(fA,fB)], [b1,b2]) ->
             let (i1A,i1B) = lerpVertGroupping (fA,fB) b1
@@ -141,6 +136,8 @@ clipTriGeneric ((vA, vB, vC), (v2A, v2B, v2C)) =
                 ((f1A,i2A,i1A),(f1B,i2B,i1B))]
         ([(f1A,f1B),(f2A,f2B),(f3A,f3B)], _) -> [((f1A,f2A,f3A),(f1B,f2B,f3B))] -- fully in front
         _ -> [] -- Fully Behind
+    where
+        inFront (vec, _) = vZ vec > epsilon
 
 clipTri :: Tri Vec3 -> [Tri Vec3]
 clipTri (Tri vA vB vC (Solid col)) =
