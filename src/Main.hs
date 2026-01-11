@@ -32,6 +32,16 @@ move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
         rollInc = 0.2
         speed = 5
 
+posRotToNtcTris :: [Tri Vec3] -> (Vec3, Vec3) -> [Tri Vec4]
+posRotToNtcTris world (pos, rot) =
+    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
+        movedTris = (fmap . fmap) (\v -> v - pos) world
+        viewTris = (fmap . fmap) (rotateWorld (rotationMatrix rot)) movedTris
+        clippedViewTris = concatMap clipTri viewTris
+        screenTris = get2DTris screenMat clippedViewTris
+        ntcTris = (fmap .fmap) divW screenTris
+    in ntcTris
+
 -- | The game loop using StateT
 loop :: [Tri Vec3] -> StateT (Vec3, Vec3, Projection, (Int, Int)) IO ()
 loop world = do
@@ -40,14 +50,9 @@ loop world = do
     -- clear screen
     liftIO clearScreen
     -- compute screen
-    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
-        movedTris = (fmap . fmap) (\v -> v - currentPos) world
-        viewTris = (fmap . fmap) (rotateWorld (rotationMatrix currentRot)) movedTris
-        clippedViewTris = concatMap clipTri viewTris
-        screenTris = get2DTris screenMat clippedViewTris
-        ntcTris = (fmap .fmap) divW screenTris
+    let ntcTris = posRotToNtcTris world (currentPos, currentRot)
     -- print screen
-    liftIO (putStrLn (getScreen ntcTris screenSize projection))
+    liftIO (putStrLn (getScreen ntcTris screenSize projection world))
     liftIO (putStrLn ("Current position: " ++ show currentPos))
     liftIO (putStrLn ("Current rotation: " ++ show currentRot))
     liftIO (putStrLn "Enter command (forward/backward/quit): ")
@@ -67,6 +72,8 @@ createWorld = do
     cubeTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\cube.bmp"
     wallTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\wall.bmp"
     floorTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\floor.bmp"
+    portalOrangeTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\portalOrange.bmp"
+    portalBlueTexture <- readBMP "C:\\Users\\a\\Documents\\C-Games\\haskell\\3DGraphicsTerminal\\Terminal3DGraphicsHaskell\\src\\textures\\portalBlue.bmp"
     -- Cube in the center
     let cube = cubeFormer cubeTexture
     -- Room dimensions
@@ -99,8 +106,31 @@ createWorld = do
                     (comp3Reduce roomMax roomMin roomMin)
                     (comp3Reduce roomMax roomMax roomMin)
                     (comp3Reduce roomMax roomMax roomMax)
+        portalMin = Vec3 (-48) (-10) (-10)
+        portalMax = Vec3 48 15 10
+        portalMinE = Vec3 (-49) (-12) (-12)
+        portalMaxE = Vec3 49 17 12
+        portalBorderOrange = wallFormer portalOrangeTexture
+            (comp3Reduce portalMinE portalMinE portalMinE)
+            (comp3Reduce portalMinE portalMinE portalMaxE)
+            (comp3Reduce portalMinE portalMaxE portalMaxE)
+            (comp3Reduce portalMinE portalMaxE portalMinE)
+        portalBorderBlue = wallFormer portalBlueTexture
+            (comp3Reduce portalMaxE portalMinE portalMinE)
+            (comp3Reduce portalMaxE portalMinE portalMaxE)
+            (comp3Reduce portalMaxE portalMaxE portalMaxE)
+            (comp3Reduce portalMaxE portalMaxE portalMinE)
+        portal = portalFormer
+                    (comp3Reduce portalMin portalMin portalMin,
+                    comp3Reduce portalMin portalMin portalMax,
+                    comp3Reduce portalMin portalMax portalMax,
+                    comp3Reduce portalMin portalMax portalMin)
+                    (comp3Reduce portalMax portalMin portalMin,
+                    comp3Reduce portalMax portalMin portalMax,
+                    comp3Reduce portalMax portalMax portalMax,
+                    comp3Reduce portalMax portalMax portalMin)
         lights = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
-        world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight
+        world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight ++ portal ++ portalBorderOrange ++ portalBorderBlue
         lightedWorld = fmap (bakeLight lights) world
     return lightedWorld
 
@@ -108,4 +138,4 @@ createWorld = do
 main :: IO ()
 main = do
     world <- createWorld
-    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 0 0, Perspective, (100, 100))
+    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 (-0.2) 0, Perspective, (100, 100))

@@ -11,6 +11,16 @@ wallFormer tex v0 v1 v2 v3 =
         Tri v0 v2 v3 (Texture (TextureMapping tex (Vec2 0 0) (Vec2 1 1) (Vec2 0 1)))
     ]
 
+-- | Make a textured quad (2 triangles) from 4 vertices and a texture
+portalFormer :: (Vec3, Vec3, Vec3, Vec3) -> (Vec3, Vec3, Vec3, Vec3) -> [Tri Vec3]
+portalFormer (vA0, vA1, vA2, vA3) (vB0, vB1, vB2, vB3) =
+    [
+        Tri vA0 vA1 vA2 (Portal False vB0 vB0 vB2),
+        Tri vA0 vA2 vA3 (Portal False vB0 vB2 vB3),
+        Tri vB0 vB1 vB2 (Portal False vA0 vA0 vA2),
+        Tri vB0 vB2 vB3 (Portal False vA0 vA2 vA3)
+    ]
+
 cubeFormer :: [[RGB]] -> [Tri Vec3]
 cubeFormer tex =
     let

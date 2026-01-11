@@ -98,13 +98,13 @@ interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective = Vec
         i f = bary `dot` component3 f (a', b', c') / invW
 
 -- | Return the RGB color at a point inside a triangle, along with interpolated depth
-pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping -> Projection -> Maybe (RGB, Double)
-pointInsideTriColor p tri colorMapping proj = do
+pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping -> Projection -> [Tri Vec3] -> Maybe (RGB, Double)
+pointInsideTriColor p tri colorMapping proj worldRegress = do
     barycentricCoords <- barycentricDepth p tri
     if not (insideTriangle (toVec3 barycentricCoords) && vL barycentricCoords > epsilon) then Nothing
     else
         let rgb = case colorMapping of
-                    Portal { } -> RGB { red = 50, green = 50, blue = 50 } -- THIS IS NOT DONE. SHOULD BE WAY MORE COMPLICATED
+                    Portal { } -> RGB { red = 150, green = 50, blue = 50 } -- THIS IS NOT DONE. SHOULD BE WAY MORE COMPLICATED
                     Solid c -> c
                     Texture (TextureMapping texturePixels _ _ _) ->
                         let w' = component3 vL (triToVec tri)

@@ -18,6 +18,8 @@ bakeLight lights tri@(Tri v1 v2 v3 colorMap) =
             in
                 Tri v1 v2 v3
                     (Texture (TextureMapping bakedTex uvA uvB uvC))
+        Portal portFlip v1b v2b v3b -> -- Too complicated to have light go thorugh portal to light other side up
+            Tri v1 v2 v3 (Portal portFlip v1b v2b v3b)
     where
         norm = getNorm tri
         mult = getNetBright lights norm
