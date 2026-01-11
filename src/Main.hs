@@ -1,6 +1,5 @@
 import Vector
 import TerminalGraphics ( clearScreen, getScreen )
-import Matrix
 import Tri
 import Objects
 import Control.Monad.Trans.State
@@ -31,16 +30,6 @@ move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
         yawInc = 0.2
         rollInc = 0.2
         speed = 5
-
-posRotToNtcTris :: [Tri Vec3] -> (Vec3, Vec3) -> [Tri Vec4]
-posRotToNtcTris world (pos, rot) =
-    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
-        movedTris = (fmap . fmap) (\v -> v - pos) world
-        viewTris = (fmap . fmap) (rotateWorld (rotationMatrix rot)) movedTris
-        clippedViewTris = concatMap clipTri viewTris
-        screenTris = get2DTris screenMat clippedViewTris
-        ntcTris = (fmap .fmap) divW screenTris
-    in ntcTris
 
 -- | The game loop using StateT
 loop :: [Tri Vec3] -> StateT (Vec3, Vec3, Projection, (Int, Int)) IO ()

@@ -3,6 +3,7 @@ module Tri where
 import Vector
 import Matrix
 import Textures
+import Data.Word
 
 -- https://en.wikipedia.org/wiki/Texture_mapping#Rasterisation_algorithms
 data Projection = Affine | Perspective
@@ -27,7 +28,7 @@ getNorm (Tri v1 v2 v3 _) =
 
 -- | Flips the normal of a triangle by reversing its winding. Need this for lighting to be effecient
 flipTri :: Tri a -> Tri a
-flipTri (Tri vA vB vC (Texture(TextureMapping tex uvA uvB uvC))) = Tri vA vC vB (Texture(TextureMapping tex uvA uvC uvB))
+flipTri (Tri vA vB vC (Texture(TextureMapping tex uvA uvB uvC))) = Tri vA vC vB (Texture (TextureMapping tex uvA uvC uvB))
 flipTri (Tri vA vB vC (Solid col)) = Tri vA vC vB (Solid col)
 flipTri (Tri vA vB vC (Portal flippedOut v2A v2B v2C)) = Tri vA vC vB (Portal (not flippedOut) v2A v2B v2C)
 
@@ -98,13 +99,18 @@ interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective = Vec
         i f = bary `dot` component3 f (a', b', c') / invW
 
 -- | Return the RGB color at a point inside a triangle, along with interpolated depth
-pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping -> Projection -> [Tri Vec3] -> Maybe (RGB, Double)
-pointInsideTriColor p tri colorMapping proj worldRegress = do
+pointInsideTriColor :: Vec2 -> Tri Vec4 -> ColorMapping -> Projection -> [Tri Vec3] -> Word8 -> Maybe (RGB, Double)
+pointInsideTriColor p tri colorMapping proj worldRegress regressCount = do
     barycentricCoords <- barycentricDepth p tri
     if not (insideTriangle (toVec3 barycentricCoords) && vL barycentricCoords > epsilon) then Nothing
     else
         let rgb = case colorMapping of
-                    Portal { } -> RGB { red = 150, green = 50, blue = 50 } -- THIS IS NOT DONE. SHOULD BE WAY MORE COMPLICATED
+                    Portal flipPortal vAOut vBOut vCOut ->
+                        let baryCoords = toVec3 barycentricCoords
+                            -- map point to destination triangle using same barycentric coordinates
+                            mappedPoint = baryCoords * comp3Reduce vAOut vBOut vCOut
+                            ntcTris = posRotToNtcTris worldRegress (mappedPoint, 0)
+                        in getColorOfPixel p ntcTris proj worldRegress (regressCount-1)
                     Solid c -> c
                     Texture (TextureMapping texturePixels _ _ _) ->
                         let w' = component3 vL (triToVec tri)
@@ -158,3 +164,26 @@ lerpVertGroupping (spVecFront, uvVecFront) (spVecBack, uvVecBack) =
             else (vZ spVecFront - 2*epsilon) / (vZ spVecFront - vZ spVecBack)
     in (spVecFront + vMap (t*) (spVecBack - spVecFront),
         uvVecFront + vMap (t*) (uvVecBack - uvVecFront))
+
+posRotToNtcTris :: [Tri Vec3] -> (Vec3, Vec3) -> [Tri Vec4]
+posRotToNtcTris world (pos, rot) =
+    let screenMat = symmetricPerspectiveMatrix 1 0.4 1 200
+        movedTris = (fmap . fmap) (\v -> v - pos) world
+        viewTris = (fmap . fmap) (rotateWorld (rotationMatrix rot)) movedTris
+        clippedViewTris = concatMap clipTri viewTris
+        screenTris = get2DTris screenMat clippedViewTris
+        ntcTris = (fmap .fmap) divW screenTris
+    in ntcTris
+
+-- | Get the RGB color of the nearest triangle at a pixel
+getColorOfPixel :: Vec2 -> [Tri Vec4] -> Projection -> [Tri Vec3] -> Word8 -> RGB
+getColorOfPixel _ _ _ _ 0 = RGB { red = 0, green = 0, blue = 0 } -- Return black, to stop infinite regression loop
+getColorOfPixel p tris proj worldRegress regressCount =
+    let candidates =
+            [ (d, rgb)
+            | Tri a b c colorMapping <- tris
+            , Just (rgb, d) <- [pointInsideTriColor p (Tri a b c colorMapping) colorMapping proj worldRegress regressCount]
+            ]
+    in case candidates of
+        [] -> RGB { red = 0, green = 0, blue = 0 }  -- default black
+        _  -> snd (maximum candidates)

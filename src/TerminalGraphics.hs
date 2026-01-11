@@ -8,18 +8,6 @@ import Control.Parallel.Strategies
 clearScreen :: IO ()
 clearScreen = putStr (concat (replicate 50 "\n") ++ "\ESC[2J\ESC[H")
 
--- | Get the RGB color of the nearest triangle at a pixel
-getColorOfPixel :: Vec2 -> [Tri Vec4] -> Projection -> [Tri Vec3] -> RGB
-getColorOfPixel p tris proj worldRegress =
-    let candidates =
-            [ (d, rgb)
-            | Tri a b c colorMapping <- tris
-            , Just (rgb, d) <- [pointInsideTriColor p (Tri a b c colorMapping) colorMapping proj worldRegress]
-            ]
-    in case candidates of
-        [] -> RGB { red = 0, green = 0, blue = 0 }  -- default black
-        _  -> snd (maximum candidates)
-
 -- | Convert an RGB to a true color ANSI SGR code
 colorToANSITRUE :: RGB -> Bool -> String
 colorToANSITRUE (RGB r g b) foreground =
@@ -38,7 +26,7 @@ getColored2Pixel pixCoords tris screenDimensions proj worldRegress =
     let
         Vec2 xRel yRel = toScreenRel pixCoords screenDimensions
 
-        color = getColorOfPixel (Vec2 xRel yRel) tris proj worldRegress
+        color = getColorOfPixel (Vec2 xRel yRel) tris proj worldRegress 5
 
         fgCode = colorToANSITRUE color True
         bgCode = colorToANSITRUE color False
