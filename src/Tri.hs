@@ -118,7 +118,7 @@ get2DTris perspectiveMat = map (\(Tri a b c color) -> Tri (multMatVec perspectiv
             (multMatVec perspectiveMat (toVec4 b))
             (multMatVec perspectiveMat (toVec4 c)) color)
 
-clipTriGeneric :: (Vector mapVec) => ((Vec3, Vec3, Vec3), (mapVec, mapVec, mapVec)) -> [((Vec3, Vec3, Vec3), (mapVec, mapVec, mapVec))]
+clipTriGeneric :: (Vector spcVec, Vector mapVec) => ((spcVec, spcVec, spcVec), (mapVec, mapVec, mapVec)) -> [((spcVec, spcVec, spcVec), (mapVec, mapVec, mapVec))]
 clipTriGeneric ((vA, vB, vC), (v2A, v2B, v2C)) =
     let
         groupedVerts = [(vA,v2A), (vB,v2B), (vC,v2C)]
