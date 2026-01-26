@@ -1,4 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
 module Matrix where
 import Vector
 
@@ -18,7 +17,6 @@ transposeMat4 (Mat4 (Vec4 r1c1 r1c2 r1c3 r1c4)
       (Vec4 r1c4 r2c4 r3c4 r4c4)
 
 instance Semigroup Mat4 where
-    (<>) :: Mat4 -> Mat4 -> Mat4
     (<>) (Mat4 r1 r2 r3 r4) m2 =
         let m2T = transposeMat4 m2
         in Mat4 (multMatVec m2T r1)
@@ -27,7 +25,6 @@ instance Semigroup Mat4 where
                 (multMatVec m2T r4)
 
 instance Monoid Mat4 where
-    mempty :: Mat4
     mempty = Mat4
         (Vec4 1 0 0 0)
         (Vec4 0 1 0 0)

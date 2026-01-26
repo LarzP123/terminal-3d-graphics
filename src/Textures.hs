@@ -1,4 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
 module Textures where
 
 import qualified Data.ByteString as BS
@@ -11,7 +10,6 @@ data RGB = RGB { red :: Word8, green :: Word8, blue :: Word8 } deriving (Show, E
 
 -- | says what color wins out if they are both in the same exact spot
 instance Ord RGB where
-    compare :: RGB -> RGB -> Ordering
     compare (RGB r1 g1 b1) (RGB r2 g2 b2) =
         compare r1 r2 <> compare g1 g2 <> compare b1 b2
 

@@ -1,4 +1,3 @@
-{-# LANGUAGE InstanceSigs #-}
 module Tri where
 import Vector
 import Matrix
@@ -42,7 +41,6 @@ flipTri (Tri vA vB vC (Solid col)) = Tri vA vC vB (Solid col)
 flipTri (Tri vA vB vC (Portal v2A v2B v2C rotTrans)) = Tri vA vC vB (Portal v2A v2B v2C rotTrans)
 
 instance Functor Tri where
-    fmap :: (a -> b) -> Tri a -> Tri b
     fmap f (Tri a b c texMap) = Tri (f a) (f b) (f c) texMap
 
 triToVec :: Tri a -> (a, a, a)
