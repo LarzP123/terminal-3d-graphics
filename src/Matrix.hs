@@ -18,33 +18,13 @@ transposeMat4 (Mat4 (Vec4 r1c1 r1c2 r1c3 r1c4)
       (Vec4 r1c4 r2c4 r3c4 r4c4)
 
 instance Semigroup Mat4 where
-    -- Multiply two 4x4 matrices
     (<>) :: Mat4 -> Mat4 -> Mat4
-    (<>) (Mat4 (Vec4 a11 a12 a13 a14)
-                (Vec4 a21 a22 a23 a24)
-                (Vec4 a31 a32 a33 a34)
-                (Vec4 a41 a42 a43 a44))
-        (Mat4 (Vec4 b11 b12 b13 b14)
-                (Vec4 b21 b22 b23 b24)
-                (Vec4 b31 b32 b33 b34)
-                (Vec4 b41 b42 b43 b44)) =
-        let r1 = Vec4 (a11*b11 + a12*b21 + a13*b31 + a14*b41)
-                    (a11*b12 + a12*b22 + a13*b32 + a14*b42)
-                    (a11*b13 + a12*b23 + a13*b33 + a14*b43)
-                    (a11*b14 + a12*b24 + a13*b34 + a14*b44)
-            r2 = Vec4 (a21*b11 + a22*b21 + a23*b31 + a24*b41)
-                    (a21*b12 + a22*b22 + a23*b32 + a24*b42)
-                    (a21*b13 + a22*b23 + a23*b33 + a24*b43)
-                    (a21*b14 + a22*b24 + a23*b34 + a24*b44)
-            r3 = Vec4 (a31*b11 + a32*b21 + a33*b31 + a34*b41)
-                    (a31*b12 + a32*b22 + a33*b32 + a34*b42)
-                    (a31*b13 + a32*b23 + a33*b33 + a34*b43)
-                    (a31*b14 + a32*b24 + a33*b34 + a34*b44)
-            r4 = Vec4 (a41*b11 + a42*b21 + a43*b31 + a44*b41)
-                    (a41*b12 + a42*b22 + a43*b32 + a44*b42)
-                    (a41*b13 + a42*b23 + a43*b33 + a44*b43)
-                    (a41*b14 + a42*b24 + a43*b34 + a44*b44)
-        in Mat4 r1 r2 r3 r4
+    (<>) (Mat4 r1 r2 r3 r4) m2 =
+        let m2T = transposeMat4 m2
+        in Mat4 (multMatVec m2T r1)
+                (multMatVec m2T r2)
+                (multMatVec m2T r3)
+                (multMatVec m2T r4)
 
 instance Monoid Mat4 where
     mempty :: Mat4

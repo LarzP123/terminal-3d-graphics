@@ -113,4 +113,4 @@ createWorld = do
 main :: IO ()
 main = do
     world <- createWorld
-    evalStateT (loop world) (Vec3 (-20) 15 (-15), Vec3 0.0 (-1.2) 0, Perspective, (1000, 1000))
+    evalStateT (loop world) (Vec3 (-20) 15 (-15), Vec3 0.0 (-1.2) 0, Perspective, (100, 100))
