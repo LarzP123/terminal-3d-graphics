@@ -8,8 +8,8 @@ import Data.Word
 -- https://en.wikipedia.org/wiki/Texture_mapping#Rasterisation_algorithms
 data Projection = Affine | Perspective
 
-triToBasisMat :: Vec3 -> Vec3 -> Vec3 -> Mat4
-triToBasisMat a b c =
+triToBasisMat :: (Vec3, Vec3, Vec3) -> Mat4
+triToBasisMat (a, b, c) =
     let right  = signum (b - a)
         normal = signum ((b - a) `cross` (c - a))
         up     = normal `cross` right
@@ -22,7 +22,7 @@ triToBasisMat a b c =
 epsilon :: Double
 epsilon = 0.2
 
-data ColorMapping = Solid RGB | Texture (TextureMapping Vec2) | Portal Bool Vec3 Vec3 Vec3 Mat4 deriving Show
+data ColorMapping = Solid RGB | Texture (TextureMapping Vec2) | Portal Vec3 Vec3 Vec3 Mat4 deriving Show
 
 {-| A Triangle made of 3 space vertices of type 'a' in space, with a color mapping onto it.
     The color mapping may either just be a solid color or a texture with 3 vec2s. Each space vertice maps to a 
@@ -39,7 +39,7 @@ getNorm (Tri v1 v2 v3 _) =
 flipTri :: Tri a -> Tri a
 flipTri (Tri vA vB vC (Texture(TextureMapping tex uvA uvB uvC))) = Tri vA vC vB (Texture (TextureMapping tex uvA uvC uvB))
 flipTri (Tri vA vB vC (Solid col)) = Tri vA vC vB (Solid col)
-flipTri (Tri vA vB vC (Portal flippedOut v2A v2B v2C rotTrans)) = Tri vA vC vB (Portal (not flippedOut) v2A v2B v2C rotTrans)
+flipTri (Tri vA vB vC (Portal v2A v2B v2C rotTrans)) = Tri vA vC vB (Portal v2A v2B v2C rotTrans)
 
 instance Functor Tri where
     fmap :: (a -> b) -> Tri a -> Tri b
@@ -114,7 +114,7 @@ pointInsideTriColor p tri colorMapping proj worldRegress regressCount rotRegress
     if not (insideTriangle (toVec3 barycentricCoords) && vL barycentricCoords > epsilon) then Nothing
     else
         let rgb = case colorMapping of
-                    Portal flipPortal vAOut vBOut vCOut portalRotMatrix ->
+                    Portal vAOut vBOut vCOut portalRotMatrix ->
                         let newRot = portalRotMatrix <> rotRegress
                             -- map point to destination triangle using same barycentric coordinates
                             mappedPoint = weight3 (vAOut, vBOut, vCOut) (toVec3 barycentricCoords)
@@ -161,8 +161,8 @@ clipTri (Tri vA vB vC (Solid col)) =
 clipTri (Tri vA vB vC (Texture (TextureMapping tex v2A v2B v2C))) =
     map (\((vA', vB', vC'), (v2A', v2B', v2C')) -> Tri vA' vB' vC' (Texture (TextureMapping tex v2A' v2B' v2C'))) clippedCoords
     where clippedCoords = clipTriGeneric ((vA,vB,vC),(v2A,v2B,v2C))
-clipTri (Tri vA vB vC (Portal flipPort v2A v2B v2C rotMat)) =
-    map (\((vA', vB', vC'), (v2A', v2B', v2C')) -> Tri vA' vB' vC' (Portal flipPort v2A' v2B' v2C' rotMat)) clippedCoords
+clipTri (Tri vA vB vC (Portal v2A v2B v2C rotMat)) =
+    map (\((vA', vB', vC'), (v2A', v2B', v2C')) -> Tri vA' vB' vC' (Portal v2A' v2B' v2C' rotMat)) clippedCoords
     where clippedCoords = clipTriGeneric ((vA,vB,vC),(v2A,v2B,v2C))
 
 -- | Interpolate between two vertices at z=0

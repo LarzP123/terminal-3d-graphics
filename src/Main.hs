@@ -103,7 +103,7 @@ createWorld = do
                 (comp3Reduce portalMin portalMin portalMax,
                 comp3Reduce portalMin portalMax portalMin)
                 (comp3Reduce portalMax portalMin portalMax,
-                comp3Reduce portalMax portalMax portalMin)
+                comp3Reduce portalMax portalMax portalMin) False
         lights = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
         world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight ++ portal
         lightedWorld = fmap (bakeLight lights) world
