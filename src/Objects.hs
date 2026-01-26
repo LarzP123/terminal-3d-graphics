@@ -2,6 +2,7 @@ module Objects where
 import Tri
 import Vector
 import Textures
+import Matrix
 
 -- | Make a textured quad (2 triangles) from 4 vertices and a texture
 wallFormer :: [[RGB]] -> Vec3 -> Vec3 -> Vec3 -> Vec3 -> [Tri Vec3]
@@ -11,15 +12,40 @@ wallFormer tex v0 v1 v2 v3 =
         Tri v0 v2 v3 (Texture (TextureMapping tex (Vec2 0 0) (Vec2 1 1) (Vec2 0 1)))
     ]
 
--- | Make a textured quad (2 triangles) from 4 vertices and a texture
-portalFormer :: (Vec3, Vec3, Vec3, Vec3) -> (Vec3, Vec3, Vec3, Vec3) -> [Tri Vec3]
-portalFormer (vA0, vA1, vA2, vA3) (vB0, vB1, vB2, vB3) =
-    [
-        Tri vA0 vA1 vA2 (Portal False vB0 vB0 vB2),
-        Tri vA0 vA2 vA3 (Portal False vB0 vB2 vB3),
-        Tri vB0 vB1 vB2 (Portal False vA0 vA0 vA2),
-        Tri vB0 vB2 vB3 (Portal False vA0 vA2 vA3)
-    ]
+-- | Make a quad (2 triangles) from 2 corners of each portal
+portalFormer :: [[RGB]] -> [[RGB]] -> (Vec3, Vec3) -> (Vec3, Vec3) -> [Tri Vec3]
+portalFormer borderTexA borderTexB (vA0, vA2) (vB0, vB2) =
+    let -- Calculate the other 2 corners for each portal
+        vA1 = Vec3 (vF vA0) (vM vA2) (vL vA0)
+        vA3 = Vec3 (vF vA2) (vM vA0) (vL vA2)
+        vB1 = Vec3 (vF vB0) (vM vB2) (vL vB0)
+        vB3 = Vec3 (vF vB2) (vM vB0) (vL vB2)
+        -- Get rotation matrix when going from portal A to portal B
+        rotSrc = triToBasisMat vA2 vA0 vA1
+        rotDst = triToBasisMat vB0 vB1 vB2
+        portalRotMatrix = rotSrc <> transposeMat4 rotDst
+        -- Get coords for the border quad
+    in [
+            Tri vA0 vA1 vA2 (Portal False vB0 vB1 vB2 (mempty::Mat4)),
+            Tri vA0 vA2 vA3 (Portal False vB0 vB2 vB3 (mempty::Mat4)),
+            Tri vB0 vB1 vB2 (Portal False vA0 vA1 vA2 (mempty::Mat4)),
+            Tri vB0 vB2 vB3 (Portal False vA0 vA2 vA3 (mempty::Mat4))
+        ]
+        ++ borderFormer borderTexA (vA0, vA1, vA2, vA3) True
+        ++ borderFormer borderTexB (vB0, vB1, vB2, vB3) False
+
+borderFormer :: [[RGB]] -> (Vec3, Vec3, Vec3, Vec3) -> Bool -> [Tri Vec3]
+borderFormer tex (v0, v1, v2, v3) flipBool =
+    let normNotDirec = (v3 - v0) `cross` (v2 - v0)
+        direc = if flipBool then negate normNotDirec else normNotDirec
+        borderOffset = vMap (*0.01) (signum direc)
+        center = vMap (/2) (v0 + v2)
+        scalOp = (* 1.2)
+        b0 = vMap scalOp (v0 - center) + center + borderOffset
+        b1 = vMap scalOp (v1 - center) + center + borderOffset
+        b2 = vMap scalOp (v2 - center) + center + borderOffset
+        b3 = vMap scalOp (v3 - center) + center + borderOffset
+    in wallFormer tex b0 b1 b2 b3
 
 cubeFormer :: [[RGB]] -> [Tri Vec3]
 cubeFormer tex =

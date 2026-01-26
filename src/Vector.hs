@@ -96,7 +96,7 @@ class Num vec => Vector vec where
     -- | Converts the vector to a 3 vector. May loose information or gain 0s in the process
     toVec3 :: vec -> Vec3
     -- | Converts the vector to a 4 vector. Gain 0 for z if not given, gain 1 for w if not given
-    toVec4 :: vec -> Vec4
+    toVec4 :: vec -> Double -> Vec4
     -- | Gets first component
     vF :: vec -> Double
     -- | Gets last component
@@ -115,8 +115,8 @@ instance Vector Vec2 where
     toVec2 = id
     toVec3 :: Vec2 -> Vec3
     toVec3 (Vec2 x y) = Vec3 x y 0
-    toVec4 :: Vec2 -> Vec4
-    toVec4 (Vec2 x y) = Vec4 x y 0 1
+    toVec4 :: Vec2 -> Double -> Vec4
+    toVec4 (Vec2 x y) = Vec4 x y 0
     vF :: Vec2 -> Double
     vF (Vec2 x _) = x
     vL :: Vec2 -> Double
@@ -135,8 +135,8 @@ instance Vector Vec3 where
     toVec2 (Vec3 x y _) = Vec2 x y
     toVec3 :: Vec3 -> Vec3
     toVec3 = id
-    toVec4 :: Vec3 -> Vec4
-    toVec4 (Vec3 x y z) = Vec4 x y z 1
+    toVec4 :: Vec3 -> Double -> Vec4
+    toVec4 (Vec3 x y z) = Vec4 x y z
     vF :: Vec3 -> Double
     vF (Vec3 x _ _) = x
     vL :: Vec3 -> Double
@@ -158,8 +158,8 @@ instance Vector Vec4 where
     toVec2 (Vec4 x y _ _) = Vec2 x y
     toVec3 :: Vec4 -> Vec3
     toVec3 (Vec4 x y z _) = Vec3 x y z
-    toVec4 :: Vec4 -> Vec4
-    toVec4 = id
+    toVec4 :: Vec4 -> Double -> Vec4
+    toVec4 v _ = v
     vF :: Vec4 -> Double
     vF (Vec4 x _ _ _) = x
     vL :: Vec4 -> Double
@@ -173,3 +173,8 @@ component3 f (a, b, c) = Vec3 (f a) (f b) (f c)
 
 comp3Reduce :: Vec3 -> Vec3 -> Vec3 -> Vec3
 comp3Reduce a b c = Vec3 (vF a) (vM b) (vL c)
+
+weight3 :: (Vec3, Vec3, Vec3) -> Vec3 -> Vec3
+weight3 (vA, vB, vC) weights = vMap (* vF weights) vA
+                                + vMap (* vM weights) vB
+                                + vMap (* vZ weights) vC

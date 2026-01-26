@@ -6,6 +6,7 @@ import Control.Monad.Trans.State
 import Control.Monad.IO.Class (liftIO)
 import Textures
 import Lighting (bakeLight, Light (Ray, Ambient))
+import Matrix (rotationMatrix)
 
 -- String input to move the camera. Takes in string input and the current position to output the new position
 move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
@@ -39,9 +40,10 @@ loop world = do
     -- clear screen
     liftIO clearScreen
     -- compute screen
-    let ntcTris = posRotToNtcTris world (currentPos, currentRot)
+    let rotMat = rotationMatrix currentRot
+    let ntcTris = posRotToNtcTris world (currentPos, rotMat)
     -- print screen
-    liftIO (putStrLn (getScreen ntcTris screenSize projection world))
+    liftIO (putStrLn (getScreen ntcTris screenSize projection world rotMat))
     liftIO (putStrLn ("Current position: " ++ show currentPos))
     liftIO (putStrLn ("Current rotation: " ++ show currentRot))
     liftIO (putStrLn "Enter command (forward/backward/quit): ")
@@ -95,31 +97,15 @@ createWorld = do
                     (comp3Reduce roomMax roomMin roomMin)
                     (comp3Reduce roomMax roomMax roomMin)
                     (comp3Reduce roomMax roomMax roomMax)
-        portalMin = Vec3 (-48) (-10) (-10)
-        portalMax = Vec3 48 15 10
-        portalMinE = Vec3 (-49) (-12) (-12)
-        portalMaxE = Vec3 49 17 12
-        portalBorderOrange = wallFormer portalOrangeTexture
-            (comp3Reduce portalMinE portalMinE portalMinE)
-            (comp3Reduce portalMinE portalMinE portalMaxE)
-            (comp3Reduce portalMinE portalMaxE portalMaxE)
-            (comp3Reduce portalMinE portalMaxE portalMinE)
-        portalBorderBlue = wallFormer portalBlueTexture
-            (comp3Reduce portalMaxE portalMinE portalMinE)
-            (comp3Reduce portalMaxE portalMinE portalMaxE)
-            (comp3Reduce portalMaxE portalMaxE portalMaxE)
-            (comp3Reduce portalMaxE portalMaxE portalMinE)
-        portal = portalFormer
-                    (comp3Reduce portalMin portalMin portalMin,
-                    comp3Reduce portalMin portalMin portalMax,
-                    comp3Reduce portalMin portalMax portalMax,
-                    comp3Reduce portalMin portalMax portalMin)
-                    (comp3Reduce portalMax portalMin portalMin,
-                    comp3Reduce portalMax portalMin portalMax,
-                    comp3Reduce portalMax portalMax portalMax,
-                    comp3Reduce portalMax portalMax portalMin)
+        portalMin = Vec3 (-48) (-10) (-40)
+        portalMax = Vec3 48 35 10
+        portal = portalFormer portalBlueTexture portalOrangeTexture
+                (comp3Reduce portalMin portalMin portalMax,
+                comp3Reduce portalMin portalMax portalMin)
+                (comp3Reduce portalMax portalMin portalMax,
+                comp3Reduce portalMax portalMax portalMin)
         lights = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
-        world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight ++ portal ++ portalBorderOrange ++ portalBorderBlue
+        world = cube ++ roomFloor ++ wallFront ++ wallBack ++ wallLeft ++ wallRight ++ portal
         lightedWorld = fmap (bakeLight lights) world
     return lightedWorld
 
@@ -127,4 +113,4 @@ createWorld = do
 main :: IO ()
 main = do
     world <- createWorld
-    evalStateT (loop world) (Vec3 0 20 (-30), Vec3 0.0 (-0.2) 0, Perspective, (100, 100))
+    evalStateT (loop world) (Vec3 (-20) 15 (-15), Vec3 0.0 (-1.2) 0, Perspective, (1000, 1000))

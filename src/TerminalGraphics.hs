@@ -3,6 +3,7 @@ import Tri
 import Vector
 import Textures
 import Control.Parallel.Strategies
+import Matrix
 
 -- | Clears the terminal
 clearScreen :: IO ()
@@ -21,20 +22,20 @@ toScreenRel (x, y) (screenWidth, screenHeight) =
          ((fromIntegral y / fromIntegral screenHeight) - 0.5)
 
 -- | Get a colored pixel using true-color, centered properly
-getColored2Pixel :: (Int, Int) -> [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> String
-getColored2Pixel pixCoords tris screenDimensions proj worldRegress =
+getColored2Pixel :: (Int, Int) -> [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> Mat4 -> String
+getColored2Pixel pixCoords tris screenDimensions proj worldRegress rotRegress =
     let
         Vec2 xRel yRel = toScreenRel pixCoords screenDimensions
 
-        color = getColorOfPixel (Vec2 xRel yRel) tris proj worldRegress 5
+        color = getColorOfPixel (Vec2 xRel yRel) tris proj worldRegress 6 rotRegress
 
         fgCode = colorToANSITRUE color True
         bgCode = colorToANSITRUE color False
     in fgCode ++ bgCode ++ "▀\ESC[0m"
 
 -- | Render all triangles to screen (parallel rows)
-getScreen :: [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> String
-getScreen tris screenDimensions@(screenWidth, screenHeight) proj worldRegress =
+getScreen :: [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> Mat4 -> String
+getScreen tris screenDimensions@(screenWidth, screenHeight) proj worldRegress rotRegress =
     unlines rows
   where
     rows :: [String]
@@ -44,5 +45,5 @@ getScreen tris screenDimensions@(screenWidth, screenHeight) proj worldRegress =
     renderRow :: Int -> String
     renderRow y =
         concatMap
-            (\x -> getColored2Pixel (x, y) tris screenDimensions proj worldRegress)
+            (\x -> getColored2Pixel (x, y) tris screenDimensions proj worldRegress rotRegress)
             [0 .. screenWidth - 1]
