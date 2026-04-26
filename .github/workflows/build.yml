@@ -1,0 +1,81 @@
+name: CI Build (Linux + Windows)
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -------------------------
+      # Setup Haskell
+      # -------------------------
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.6.6"
+          cabal-version: "3.10"
+
+      # -------------------------
+      # Cache Cabal store + build artifacts
+      # -------------------------
+      - name: Cache Cabal store
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-cabal-${{ hashFiles('**/*.cabal', 'cabal.project*') }}
+          restore-keys: |
+            ${{ runner.os }}-cabal-
+
+      # -------------------------
+      # Update package index
+      # -------------------------
+      - name: Update package index
+        run: cabal update
+
+      # -------------------------
+      # Build project
+      # -------------------------
+      - name: Build project
+        run: cabal build all
+
+      # -------------------------
+      # Stage Linux artifact
+      # -------------------------
+      - name: Stage Linux files
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p dist
+          cp $(cabal list-bin exe:t3d) dist/t3d
+          cp -r textures dist/
+
+      # -------------------------
+      # Stage Windows artifact
+      # -------------------------
+      - name: Stage Windows files
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force dist
+          Copy-Item (cabal list-bin exe:t3d) dist\t3d.exe
+          Copy-Item -Recurse textures dist\textures
+
+      # -------------------------
+      # Upload artifacts
+      # -------------------------
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-build
+          path: dist/
