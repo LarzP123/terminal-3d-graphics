@@ -1,0 +1,104 @@
+name: Release (Tag-based)
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Haskell
+        uses: haskell-actions/setup@v2
+        with:
+          ghc-version: "9.6.6"
+          cabal-version: "3.10"
+
+      - name: Cache Cabal
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-cabal-${{ hashFiles('**/*.cabal', 'cabal.project*') }}
+          restore-keys: |
+            ${{ runner.os }}-cabal-
+
+      - name: Update package index
+        run: cabal update
+
+      - name: Build project
+        run: cabal build all
+
+      # -------------------------
+      # Stage Linux build
+      # -------------------------
+      - name: Stage Linux release
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p release
+          cp $(cabal list-bin exe:t3d) release/t3d
+          cp -r textures release/
+
+      # -------------------------
+      # Stage Windows build
+      # -------------------------
+      - name: Stage Windows release
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force release
+          Copy-Item (cabal list-bin exe:t3d) release\t3d.exe
+          Copy-Item -Recurse textures release\textures
+
+      # -------------------------
+      # Upload artifacts per OS
+      # -------------------------
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}-release
+          path: release/
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Linux-release
+          path: linux
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Windows-release
+          path: windows
+
+      - name: Package Linux
+        run: |
+          cd linux
+          zip -r ../t3d-linux.zip .
+
+      - name: Package Windows
+        run: |
+          cd windows
+          zip -r ../t3d-windows.zip .
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            t3d-linux.zip
+            t3d-windows.zip
