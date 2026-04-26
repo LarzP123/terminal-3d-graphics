@@ -1,10 +1,11 @@
-module Matrix where
-import Vector
+module Terminal3D.Matrix where
+
+import Terminal3D.Vector
 
 -- | A 4x4 Matrix.
 data Mat4 = Mat4 Vec4 Vec4 Vec4 Vec4 deriving (Show, Eq)
 
--- | Transpose a 4x4 matrix 
+-- | Transpose a 4x4 matrix
 transposeMat4 :: Mat4 -> Mat4
 transposeMat4 (Mat4 (Vec4 r1c1 r1c2 r1c3 r1c4)
                     (Vec4 r2c1 r2c2 r2c3 r2c4)
@@ -31,30 +32,35 @@ instance Monoid Mat4 where
         (Vec4 0 0 1 0)
         (Vec4 0 0 0 1)
 
--- | Does a 4x4 Matrix times a column Vector of 4 components
+-- | Multiply a 4x4 matrix by a column Vec4
 multMatVec :: Mat4 -> Vec4 -> Vec4
-multMatVec (Mat4 r1 r2 r3 r4) colV = Vec4 (dot r1 colV) (dot r2 colV) (dot r3 colV) (dot r4 colV)
+multMatVec (Mat4 r1 r2 r3 r4) colV =
+    Vec4 (dot r1 colV) (dot r2 colV) (dot r3 colV) (dot r4 colV)
 
+-- | Perspective-divide: divide x, y, z by w
 divW :: Vec4 -> Vec4
 divW (Vec4 x y z w) = Vec4 (x/w) (y/w) (z/w) w
 
+-- | Apply a rotation matrix to a Vec3 (homogeneous)
 rotateWorld :: Mat4 -> Vec3 -> Vec3
 rotateWorld m (Vec3 a b c) = toVec3 (divW (multMatVec m (Vec4 a b c 1)))
 
+-- | Build a perspective matrix that respects the screen's aspect ratio
 screenPerspectiveMatrix :: (Int, Int) -> Double -> Double -> Mat4
 screenPerspectiveMatrix (screenX, screenY) n f =
     let ratio = fromIntegral screenY / fromIntegral screenX
         (right, top) = if screenX > screenY then (1, ratio) else (1/ratio, 1)
     in symmetricPerspectiveMatrix right n top f
 
--- https://www.mauriciopoppe.com/notes/computer-graphics/viewing/projection-transform/ Eq. 12
+-- | Symmetric perspective matrix (see https://www.mauriciopoppe.com/notes/computer-graphics/viewing/projection-transform/ Eq. 12)
 symmetricPerspectiveMatrix :: Double -> Double -> Double -> Double -> Mat4
 symmetricPerspectiveMatrix r n t f = Mat4
     (Vec4 (n/r) 0     0             0            )
     (Vec4 0     (n/t) 0             0            )
     (Vec4 0     0     ((f+n)/(n-f)) (2*f*n/(n-f)))
-    (Vec4 0     0     (-1)            0          )
+    (Vec4 0     0     (-1)          0            )
 
+-- | Rotation matrix around the X axis (pitch)
 pitchMatrix :: Double -> Mat4
 pitchMatrix a = Mat4
     (Vec4 1       0        0 0)
@@ -62,13 +68,15 @@ pitchMatrix a = Mat4
     (Vec4 0 (sin a)  (cos a) 0)
     (Vec4 0       0        0 1)
 
+-- | Rotation matrix around the Y axis (yaw)
 yawMatrix :: Double -> Mat4
 yawMatrix a = Mat4
     (Vec4  ( cos a) 0 ( sin a) 0)
-    (Vec4        0 1       0 0)
-    (Vec4 (-sin a) 0 ( cos a) 0)
-    (Vec4        0 0       0 1)
+    (Vec4        0  1       0  0)
+    (Vec4 (-sin a)  0 ( cos a) 0)
+    (Vec4        0  0       0  1)
 
+-- | Rotation matrix around the Z axis (roll)
 rollMatrix :: Double -> Mat4
 rollMatrix a = Mat4
     (Vec4 (cos a) (-sin a) 0 0)
@@ -76,5 +84,7 @@ rollMatrix a = Mat4
     (Vec4       0        0 1 0)
     (Vec4       0        0 0 1)
 
+-- | Combined pitch/yaw/roll rotation matrix from a Vec3 of Euler angles
 rotationMatrix :: Vec3 -> Mat4
-rotationMatrix (Vec3 pitch yaw roll) = mconcat [pitchMatrix pitch, yawMatrix yaw, rollMatrix roll]
+rotationMatrix (Vec3 pitch yaw roll) =
+    mconcat [pitchMatrix pitch, yawMatrix yaw, rollMatrix roll]

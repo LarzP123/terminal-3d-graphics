@@ -1,4 +1,6 @@
 cradle:
   cabal:
-    - path: "./src"
-      component: "exe:Terminal3DGraphicsHaskell"
+    - path: "src"
+      component: "lib:terminal-3d-graphics"
+    - path: "app"
+      component: "exe:t3d"
