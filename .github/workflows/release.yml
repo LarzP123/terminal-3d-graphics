@@ -77,6 +77,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
         with:
@@ -99,9 +104,6 @@ jobs:
           cd windows
           zip -r ../t3d-windows.zip .
 
-      # -------------------------
-      # FIX: derive tag properly
-      # -------------------------
       - name: Get tag
         run: |
           TAG=$(git describe --tags --abbrev=0)
