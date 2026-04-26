@@ -1,0 +1,27 @@
+name: Auto Tag on Master Merge
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate tag
+        id: tag
+        run: |
+          VERSION="v$(date +'%Y.%m.%d.%H%M%S')"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Create tag
+        run: |
+          git tag $VERSION
+          git push origin $VERSION
