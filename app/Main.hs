@@ -4,35 +4,45 @@ import Terminal3D
 import Control.Monad.Trans.State
 import Control.Monad.IO.Class (liftIO)
 import System.Exit (exitSuccess)
+import Data.List (find)
+import System.IO (hFlush, stdout)
 
 -- ---------------------------------------------------------------------------
 -- Camera movement
 -- ---------------------------------------------------------------------------
 
--- | Parse a movement command and return updated (position, rotation).
-move :: String -> Vec3 -> Vec3 -> (Vec3, Vec3)
-move cmd pos@(Vec3 x y z) rot@(Vec3 pitch yaw roll) =
-    case cmd of
-        "forward"    -> (Vec3 x       y       (z + speed), rot)
-        "backward"   -> (Vec3 x       y       (z - speed), rot)
-        "left"       -> (Vec3 (x + speed) y   z,           rot)
-        "right"      -> (Vec3 (x - speed) y   z,           rot)
-        "turn left"  -> (pos, Vec3 pitch (yaw - yawInc)   roll)
-        "turn right" -> (pos, Vec3 pitch (yaw + yawInc)   roll)
-        "turn up"    -> (pos, Vec3 (pitch + pitchInc) yaw roll)
-        "turn down"  -> (pos, Vec3 (pitch - pitchInc) yaw roll)
-        "lean left"  -> (pos, Vec3 pitch yaw (roll - rollInc))
-        "lean right" -> (pos, Vec3 pitch yaw (roll + rollInc))
-        _            -> (pos, rot)
+{-| A possible movement operation containning a position transform (rotation -> position -> output position)
+    , rotation transform, action character, and full name -}
+data MoveOperation = MoveOperation (Vec3 -> Vec3 -> Vec3) (Vec3 -> Vec3) Char String
+
+moveOperations :: [MoveOperation]
+moveOperations =
+    [
+        MoveOperation (const id) id 'n' "do nothing",
+        MoveOperation (\(Vec3 _ yaw _) (Vec3 x y z) -> Vec3 (x - speed * sin yaw) y (z + speed * cos yaw)) id 'w' "move forward",
+        MoveOperation (\(Vec3 _ yaw _) (Vec3 x y z) -> Vec3 (x + speed * sin yaw) y (z - speed * cos yaw)) id 's' "move backward",
+        MoveOperation (\(Vec3 _ yaw _) (Vec3 x y z) -> Vec3 (x - speed * cos yaw) y (z - speed * sin yaw)) id 'd' "strafe right",
+        MoveOperation (\(Vec3 _ yaw _) (Vec3 x y z) -> Vec3 (x + speed * cos yaw) y (z + speed * sin yaw)) id 'a' "strafe left",
+        MoveOperation (const id) (\(Vec3 p y r) -> Vec3 p (y - yawInc) r)   'j' "turn left",
+        MoveOperation (const id) (\(Vec3 p y r) -> Vec3 p (y + yawInc) r)   'l' "turn right",
+        MoveOperation (const id) (\(Vec3 p y r) -> Vec3 (p + pitchInc) y r) 'i' "turn up",
+        MoveOperation (const id) (\(Vec3 p y r) -> Vec3 (p - pitchInc) y r) 'k' "turn down"
+    ]
     where
         speed    = 5
         pitchInc = 0.2
         yawInc   = 0.2
-        rollInc  = 0.2
 
--- ---------------------------------------------------------------------------
--- Game loop
--- ---------------------------------------------------------------------------
+-- | Parse a movement command and return updated (position, rotation), or Nothing if invalid.
+move :: String -> Vec3 -> Vec3 -> Maybe (Vec3, Vec3)
+move cmd pos rot =
+    case find (\(MoveOperation _ _ c name) -> name == cmd || [c] == cmd) moveOperations of
+        Just (MoveOperation posT rotT _ _) -> Just (posT rot pos, rotT rot)
+        Nothing                            -> Nothing
+
+-- | Return a help string listing all available commands.
+helpText :: String
+helpText = unlines $ map (\(MoveOperation _ _ c name) -> name ++ " (" ++ [c] ++ ")") moveOperations
 
 -- | State: (cameraPosition, cameraRotation, projection, screenSize)
 type AppState = (Vec3, Vec3, Projection, (Int, Int))
@@ -47,15 +57,21 @@ loop world = do
     liftIO $ putStrLn (getScreen ntcTris screenSize projection world rotMat)
     liftIO $ putStrLn ("Position : " ++ show currentPos)
     liftIO $ putStrLn ("Rotation : " ++ show currentRot)
-    liftIO $ putStr   "Command (forward/backward/left/right/turn left/turn right/turn up/turn down/lean left/lean right/quit): "
+    promptLoop world
+
+promptLoop :: [Tri Vec3] -> StateT AppState IO ()
+promptLoop world = do
+    liftIO $ putStr "Command (or help/quit): "
+    liftIO $ hFlush stdout
     cmd <- liftIO getLine
+    (currentPos, currentRot, _, _) <- get
     case cmd of
-        "quit" -> liftIO (putStrLn "Goodbye." >> exitSuccess)
-        _      -> do
-            modify (\(p, r, pr, ss) ->
-                let (p', r') = move cmd p r
-                in (p', r', pr, ss))
-            loop world
+        "quit"   -> liftIO (putStrLn "Goodbye." >> exitSuccess)
+        "?"      -> liftIO (putStrLn helpText) >> promptLoop world
+        "help"   -> liftIO (putStrLn helpText) >> promptLoop world
+        _        -> case move cmd currentPos currentRot of
+            Nothing       -> liftIO (putStrLn ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
+            Just (p', r') -> modify (\(_, _, pr, ss) -> (p', r', pr, ss)) >> loop world
 
 -- ---------------------------------------------------------------------------
 -- World definition
