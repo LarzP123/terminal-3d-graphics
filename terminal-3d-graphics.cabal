@@ -22,8 +22,8 @@ common shared
         base       >= 4.0 && < 5.0,
         bytestring,
         parallel,
-        transformers
-
+        transformers,
+        comonad
 -- -----------------------------------------------------------------------
 -- Library: import Terminal3D to use the engine in your own project
 -- -----------------------------------------------------------------------
