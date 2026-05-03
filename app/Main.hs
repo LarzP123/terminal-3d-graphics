@@ -7,10 +7,6 @@ import System.Exit (exitSuccess)
 import Data.List (find)
 import System.IO (hFlush, stdout)
 
--- ---------------------------------------------------------------------------
--- Camera movement
--- ---------------------------------------------------------------------------
-
 {-| A possible movement operation containning a position transform (rotation -> position -> output position)
     , rotation transform, action character, and full name -}
 data MoveOperation = MoveOperation (Vec3 -> Vec3 -> Vec3) (Vec3 -> Vec3) Char String
@@ -28,10 +24,10 @@ moveOperations =
         MoveOperation (const id) (\(Vec3 p y r) -> Vec3 (p + pitchInc) y r) 'i' "turn up",
         MoveOperation (const id) (\(Vec3 p y r) -> Vec3 (p - pitchInc) y r) 'k' "turn down"
     ]
-    where
-        speed    = 5
-        pitchInc = 0.2
-        yawInc   = 0.2
+  where
+    speed    = 5
+    pitchInc = 0.2
+    yawInc   = 0.2
 
 -- | Parse a movement command and return updated (position, rotation), or Nothing if invalid.
 move :: String -> Vec3 -> Vec3 -> Maybe (Vec3, Vec3)
@@ -42,21 +38,30 @@ move cmd pos rot =
 
 -- | Return a help string listing all available commands.
 helpText :: String
-helpText = unlines $ map (\(MoveOperation _ _ c name) -> name ++ " (" ++ [c] ++ ")") moveOperations
+helpText = unlines $
+    map (\(MoveOperation _ _ c name) -> "  " ++ [c] ++ "  " ++ name) moveOperations
+    ++
+    [ -- Temporary hardcoding of command help text.
+        "",
+        "Anti-aliasing (post-process):    ppaa box <n> | ppaa gaussian <n>",
+        "Anti-aliasing (supersampling):   ssaa box <n> | ssaa gaussian <n>"
+    ]
 
--- | State: (cameraPosition, cameraRotation, projection, screenSize)
-type AppState = (Vec3, Vec3, Projection, (Int, Int))
+-- | (cameraPosition, cameraRotation, projection, screenSize, Supersampling Anti-Aliasing, Post Processing Anti-Aliasing)
+type AppState = (Vec3, Vec3, Projection, (Int, Int), AntiAliasing, AntiAliasing)
 
 -- | Main render/input loop.
 loop :: [Tri Vec3] -> StateT AppState IO ()
 loop world = do
-    (currentPos, currentRot, projection, screenSize) <- get
+    (currentPos, currentRot, projection, screenSize, ssaa, ppaa) <- get
     liftIO clearScreen
     let rotMat  = rotationMatrix currentRot
         ntcTris = posRotToNtcTris world (currentPos, rotMat)
-    liftIO $ putStrLn (getScreen ntcTris screenSize projection world rotMat)
+    liftIO $ putStrLn (getScreen ntcTris screenSize projection world rotMat ssaa ppaa)
     liftIO $ putStrLn ("Position : " ++ show currentPos)
     liftIO $ putStrLn ("Rotation : " ++ show currentRot)
+    liftIO $ putStrLn ("SSAA     : " ++ show ssaa)
+    liftIO $ putStrLn ("PPAA     : " ++ show ppaa)
     promptLoop world
 
 promptLoop :: [Tri Vec3] -> StateT AppState IO ()
@@ -64,21 +69,30 @@ promptLoop world = do
     liftIO $ putStr "Command (or help/quit): "
     liftIO $ hFlush stdout
     cmd <- liftIO getLine
-    (currentPos, currentRot, _, _) <- get
-    case cmd of
-        "quit"   -> liftIO (putStrLn "Goodbye." >> exitSuccess)
-        "?"      -> liftIO (putStrLn helpText) >> promptLoop world
-        "help"   -> liftIO (putStrLn helpText) >> promptLoop world
-        _        -> case move cmd currentPos currentRot of
-            Nothing       -> liftIO (putStrLn ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
-            Just (p', r') -> modify (\(_, _, pr, ss) -> (p', r', pr, ss)) >> loop world
+    (currentPos, currentRot, _, _, _, _) <- get
+    case words cmd of
+        ("ssaa" : rest) -> case parseAA rest of
+            Right newAA  -> modify (\(p, r, pr, s, _, pp) -> (p, r, pr, s, newAA, pp)) >> loop world
+            Left err     -> liftIO (putStrLn err) >> promptLoop world
+        ("ppaa" : rest) -> case parseAA rest of
+            Right newAA  -> modify (\(p, r, pr, s, sp, _) -> (p, r, pr, s, sp, newAA)) >> loop world
+            Left err     -> liftIO (putStrLn err) >> promptLoop world
+        _ -> case cmd of
+            "quit" -> liftIO (putStrLn "Goodbye." >> exitSuccess)
+            "?"    -> liftIO (putStrLn helpText) >> promptLoop world
+            "help" -> liftIO (putStrLn helpText) >> promptLoop world
+            _      -> case move cmd currentPos currentRot of
+                Nothing       -> liftIO (putStrLn ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
+                Just (p', r') -> modify (\(_, _, pr, s, sp, pp) -> (p', r', pr, s, sp, pp)) >> loop world
 
--- ---------------------------------------------------------------------------
--- World definition
--- ---------------------------------------------------------------------------
+-- | Parses user input for changing anti-aliasing settings
+parseAA :: [String] -> Either String AntiAliasing
+parseAA ["box", n]      = case reads n of { [(i, "")] -> Right (aaBox i);      _ -> Left ("Not a valid integer: " ++ n) }
+parseAA ["gaussian", n] = case reads n of { [(i, "")] -> Right (aaGaussian i); _ -> Left ("Not a valid integer: " ++ n) }
+parseAA _               = Left "Usage: none | box <n> | gaussian <n>"
 
--- | Build the demo scene: a lit room containing a cube and two portals.
---   Texture paths are resolved relative to the working directory at runtime.
+{-| Build the demo scene: a lit room containing a cube and two portals.
+texture paths are resolved relative to the working directory at runtime. -}
 createWorld :: IO [Tri Vec3]
 createWorld = do
     cubeTexture         <- readBMP "textures/cube.bmp"
@@ -127,22 +141,21 @@ createWorld = do
                         , comp3Reduce portalMax portalMax portalMin )
                         False
 
-        lights    = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
-        world     = cube ++ roomFloor ++ wallFront ++ wallBack
-                       ++ wallLeft  ++ wallRight  ++ portal
+        lights = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
+        world  = cube ++ roomFloor ++ wallFront ++ wallBack
+                    ++ wallLeft  ++ wallRight  ++ portal
 
     return (fmap (bakeLight lights) world)
 
--- ---------------------------------------------------------------------------
--- Entry point
--- ---------------------------------------------------------------------------
-
+-- | Entry point
 main :: IO ()
 main = do
     world <- createWorld
     evalStateT (loop world)
-        ( Vec3 (-20) 15 (-15)   -- initial position
-        , Vec3 0.0 (-1.2) 0     -- initial rotation (pitch, yaw, roll)
+        ( Vec3 (-20) 15 (-15)
+        , Vec3 0.0 (-1.2) 0
         , Perspective
-        , (100, 50)             -- screen columns × rows
+        , (100, 50)
+        , aaBox 1 -- supersampling
+        , aaBox 1 -- post-process
         )
