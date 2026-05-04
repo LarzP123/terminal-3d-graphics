@@ -24,6 +24,13 @@ common shared
         parallel,
         transformers,
         comonad
+    ghc-options:
+        -Wall
+        -O2
+        -funbox-strict-fields
+        -fspecialise-aggressively
+        -optc-O3
+
 -- -----------------------------------------------------------------------
 -- Library: import Terminal3D to use the engine in your own project
 -- -----------------------------------------------------------------------
@@ -49,4 +56,5 @@ executable t3d
     import:          shared
     main-is:         Main.hs
     hs-source-dirs:  app
+    ghc-options:     -threaded -rtsopts
     build-depends:   terminal-3d-graphics:terminal-3d-graphics
