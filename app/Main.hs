@@ -7,6 +7,8 @@ import System.Exit (exitSuccess)
 import Data.List (find)
 import System.IO (hFlush, stdout)
 import qualified Data.ByteString.Lazy as LazyByteBuilder
+import System.Process
+import Control.Exception
 
 {-| A possible movement operation containning a position transform (rotation -> position -> output position)
     , rotation transform, action character, and full name -}
@@ -151,6 +153,7 @@ createWorld = do
 -- | Entry point
 main :: IO ()
 main = do
+    catch (callCommand "chcp 65001") ((\_ -> return ()) :: SomeException -> IO ()) -- Force UTF8 output on Windows. Hackish
     world <- createWorld
     evalStateT (loop world)
         ( Vec3 (-20) 15 (-15)
