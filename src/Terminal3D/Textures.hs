@@ -5,11 +5,15 @@ import Data.Bits
 import Data.Word
 import Control.Monad
 import Data.Array
+import Control.DeepSeq
 
 type Texture = Array (Int, Int) RGB
 
 -- | RGB pixel type
 data RGB = RGB { red :: Word8, green :: Word8, blue :: Word8 } deriving (Show, Eq)
+
+instance NFData RGB where
+    rnf (RGB r g b) = r `seq` g `seq` b `seq` ()
 
 -- | Z-buffer ordering: when two pixels coincide, compare by channel values
 instance Ord RGB where

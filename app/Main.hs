@@ -156,7 +156,7 @@ main = do
         ( Vec3 (-20) 15 (-15)
         , Vec3 0.0 (-1.2) 0
         , Perspective
-        , (1000, 500)
+        , (100, 50)
         , aaBox 1 -- supersampling
         , aaBox 1 -- post-process
         )

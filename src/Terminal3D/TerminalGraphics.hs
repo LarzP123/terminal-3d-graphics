@@ -138,7 +138,7 @@ getScreen :: [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> Mat4 -> Ant
 getScreen tris screenDimensions@(screenWidth, screenHeight) proj worldRegress rotRegress ssaa ppaa =
     let samples = toSubPixel (runAA ssaa)
         rawGrid :: Grid RGB
-        rawGrid = Grid $ parMap rseq renderRow [0, 2 .. screenHeight - 1]
+        rawGrid = Grid (map renderRow [0, 2 .. screenHeight - 1] `using` parListChunk 8 rdeepseq)
 
         renderRow :: Int -> [RGB]
         renderRow y =
