@@ -6,6 +6,8 @@ import Terminal3D.Textures
 import Terminal3D.Matrix
 import Control.Parallel.Strategies
 import Control.Comonad
+import qualified Data.ByteString.Builder as ByteBuilder
+import qualified Data.ByteString.Lazy as LazyByteBuilder
 
 -- | A 2D grid of values backed by a nested list
 newtype Grid a = Grid { gData :: [[a]] }
@@ -113,10 +115,26 @@ toScreenRel (x, y) (screenWidth, screenHeight) =
 rgbToANSI :: RGB -> String
 rgbToANSI color = colorToANSITRUE color True ++ colorToANSITRUE color False ++ "▀\ESC[0m"
 
+-- Convert pixel to builder instead of String
+rgbToBuilder :: RGB -> ByteBuilder.Builder
+rgbToBuilder (RGB r g b) = mconcat [
+        ByteBuilder.string7 "\ESC[38;2;",
+        ByteBuilder.word8Dec r,
+        ByteBuilder.char7 ';',
+        ByteBuilder.word8Dec g,
+        ByteBuilder.char7 ';',
+        ByteBuilder.word8Dec b,
+        ByteBuilder.string7 "m\ESC[48;2;",
+        ByteBuilder.word8Dec r,
+        ByteBuilder.char7 ';',
+        ByteBuilder.word8Dec g,
+        ByteBuilder.char7 ';',
+        ByteBuilder.word8Dec b, 
+        ByteBuilder.string7 "m\xe2\x96\x80\ESC[0m"
+    ]
+
 -- | Render a full frame to a 'String', processing rows in parallel
-getScreen
-    :: [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> Mat4
-    -> AntiAliasing -> AntiAliasing -> String
+getScreen :: [Tri Vec4] -> (Int, Int) -> Projection -> [Tri Vec3] -> Mat4 -> AntiAliasing -> AntiAliasing -> LazyByteBuilder.ByteString
 getScreen tris screenDimensions@(screenWidth, screenHeight) proj worldRegress rotRegress ssaa ppaa =
     let samples = toSubPixel (runAA ssaa)
         rawGrid :: Grid RGB
@@ -128,4 +146,5 @@ getScreen tris screenDimensions@(screenWidth, screenHeight) proj worldRegress ro
                 in  getColorOfPixel (Vec2 xRel yRel) tris proj worldRegress 6 rotRegress)
                 | (dx, dy, w) <- samples ]
             | x <- [0 .. screenWidth - 1] ]
-    in  unlines . map (concatMap rgbToANSI) . gData . unfocusGrid $ extend (neighbourhood (runAA ppaa)) (focusGrid rawGrid)
+    in ByteBuilder.toLazyByteString . foldMap (\row -> foldMap rgbToBuilder row <> ByteBuilder.char7 '\n')
+        . gData . unfocusGrid $ extend (neighbourhood (runAA ppaa)) (focusGrid rawGrid)
