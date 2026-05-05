@@ -24,7 +24,8 @@ common shared
         transformers,
         comonad,
         array,
-        deepseq
+        deepseq,
+        process
     ghc-options:
         -Wall
         -O2

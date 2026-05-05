@@ -8,6 +8,7 @@ import Control.Parallel.Strategies
 import Control.Comonad
 import qualified Data.ByteString.Builder as ByteBuilder
 import qualified Data.ByteString.Lazy as LazyByteBuilder
+import qualified Data.ByteString as StrictBS
 
 -- | A 2D grid of values backed by a nested list
 newtype Grid a = Grid { gData :: [[a]] }
@@ -129,8 +130,10 @@ rgbToBuilder (RGB r g b) = mconcat [
         ByteBuilder.char7 ';',
         ByteBuilder.word8Dec g,
         ByteBuilder.char7 ';',
-        ByteBuilder.word8Dec b, 
-        ByteBuilder.string7 "m\xe2\x96\x80\ESC[0m"
+        ByteBuilder.word8Dec b,
+        ByteBuilder.string7 "m",
+        ByteBuilder.byteString (StrictBS.pack [0xe2, 0x96, 0x80]),
+        ByteBuilder.string7 "\ESC[0m"
     ]
 
 -- | Render a full frame to a 'String', processing rows in parallel

@@ -19,7 +19,7 @@ cabal run t3d
 To run with the interpreter
 
 ```bash
-ghci -isrc -iapp -package parallel -package bytestring -package transformers app/Main.hs
+ghci -isrc -iapp -package parallel -package bytestring -package transformers -package array -package deepseq -package comonad -package process app/Main.hs
 :main
 ```
 
