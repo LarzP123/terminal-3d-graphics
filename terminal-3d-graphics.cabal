@@ -23,7 +23,8 @@ common shared
         bytestring,
         parallel,
         transformers,
-        comonad
+        comonad,
+        array
     ghc-options:
         -Wall
         -O2

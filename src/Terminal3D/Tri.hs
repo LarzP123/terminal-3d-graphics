@@ -4,6 +4,7 @@ import Terminal3D.Vector
 import Terminal3D.Matrix
 import Terminal3D.Textures
 import Data.Word
+import Data.Array
 
 -- | Projection mode for texture mapping
 data Projection = Affine | Perspective
@@ -81,14 +82,13 @@ insideTriangle (Vec3 u v w) =
     let eps = 1e-9 in u >= -eps && v >= -eps && w >= -eps
 
 -- | Nearest-neighbour texture sample given a UV in [0,1]²
-sampleTexture :: [[RGB]] -> Vec2 -> RGB
-sampleTexture pixels uvCoord =
-    let imgHeight = length pixels
-        imgWidth  = length (head pixels)
-        sloper    = uvCoord * Vec2 (fromIntegral (imgWidth - 1)) (fromIntegral (imgHeight - 1))
-        pixelX    = min (imgWidth  - 1) (max 0 (round (vF sloper)))
-        pixelY    = min (imgHeight - 1) (max 0 (round (vL sloper)))
-    in (pixels !! pixelY) !! pixelX
+sampleTexture :: Texture -> Vec2 -> RGB
+sampleTexture tex uvCoord =
+    let ((_, _), (maxY, maxX)) = bounds tex
+        pixelX = min maxX (max 0 (round (vF sloper)))
+        pixelY = min maxY (max 0 (round (vL sloper)))
+        sloper  = uvCoord * Vec2 (fromIntegral maxX) (fromIntegral maxY)
+    in tex ! (pixelY, pixelX)
 
 -- | Interpolate UV coordinates using barycentric weights (affine or perspective-correct)
 interpolateUV :: Vec3 -> ColorMapping -> Vec3 -> Projection -> Vec2

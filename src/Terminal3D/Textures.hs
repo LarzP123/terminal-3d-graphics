@@ -4,6 +4,9 @@ import qualified Data.ByteString as BS
 import Data.Bits
 import Data.Word
 import Control.Monad
+import Data.Array
+
+type Texture = Array (Int, Int) RGB
 
 -- | RGB pixel type
 data RGB = RGB { red :: Word8, green :: Word8, blue :: Word8 } deriving (Show, Eq)
@@ -29,7 +32,7 @@ bytesToInt bs
     | otherwise = error "Not enough bytes to read Int"
 
 -- | Read a 24-bit uncompressed BMP file and return pixel rows (top-to-bottom)
-readBMP :: FilePath -> IO [[RGB]]
+readBMP :: FilePath -> IO Texture
 readBMP path = do
     content <- BS.readFile path
     when (BS.take 2 content /= BS.pack [66,77])
@@ -49,7 +52,8 @@ readBMP path = do
                 parseRow []           = []
                 parseRow _            = error "Incomplete pixel data"
             in parseRow rowBytes
-    return [ getRow y | y <- [0..imagePixelHeight-1] ]
+        rows = [ getRow y | y <- [0..imagePixelHeight-1] ]
+    return $ listArray ((0,0), (imagePixelHeight-1, imagePixelWidth-1)) (concat rows)
 
 -- | UV texture mapping: a texture grid with three UV corner coordinates
-data TextureMapping a = TextureMapping [[RGB]] a a a deriving Show
+data TextureMapping a = TextureMapping Texture a a a deriving Show
