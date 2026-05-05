@@ -4,6 +4,7 @@ import Terminal3D.Vector
 import Terminal3D.Matrix
 import Terminal3D.Textures
 import Data.Word
+import Data.Array
 
 -- | Projection mode for texture mapping
 data Projection = Affine | Perspective
@@ -81,14 +82,13 @@ insideTriangle (Vec3 u v w) =
     let eps = 1e-9 in u >= -eps && v >= -eps && w >= -eps
 
 -- | Nearest-neighbour texture sample given a UV in [0,1]²
-sampleTexture :: [[RGB]] -> Vec2 -> RGB
-sampleTexture pixels uvCoord =
-    let imgHeight = length pixels
-        imgWidth  = length (head pixels)
-        sloper    = uvCoord * Vec2 (fromIntegral (imgWidth - 1)) (fromIntegral (imgHeight - 1))
-        pixelX    = min (imgWidth  - 1) (max 0 (round (vF sloper)))
-        pixelY    = min (imgHeight - 1) (max 0 (round (vL sloper)))
-    in (pixels !! pixelY) !! pixelX
+sampleTexture :: Texture -> Vec2 -> RGB
+sampleTexture tex uvCoord =
+    let ((_, _), (maxY, maxX)) = bounds tex
+        pixelX = min maxX (max 0 (round (vF sloper)))
+        pixelY = min maxY (max 0 (round (vL sloper)))
+        sloper  = uvCoord * Vec2 (fromIntegral maxX) (fromIntegral maxY)
+    in tex ! (pixelY, pixelX)
 
 -- | Interpolate UV coordinates using barycentric weights (affine or perspective-correct)
 interpolateUV :: Vec3 -> ColorMapping -> Vec3 -> Projection -> Vec2
@@ -109,10 +109,10 @@ interpolateUV bary (Texture (TextureMapping _ uvA uvB uvC)) w' Perspective =
 
 -- | Return the RGB colour and depth of the nearest hit on a triangle at pixel @p@
 pointInsideTriColor
-    :: Vec2 -> Tri Vec4 -> ColorMapping -> Projection
+    :: Vec2 -> Tri Vec4 -> Projection
     -> [Tri Vec3] -> Word8 -> Mat4
     -> Maybe (RGB, Double)
-pointInsideTriColor p tri colorMapping proj worldRegress regressCount rotRegress = do
+pointInsideTriColor p tri@(Tri _ _ _ colorMapping) proj worldRegress regressCount rotRegress = do
     barycentricCoords <- barycentricDepth p tri
     if not (insideTriangle (toVec3 barycentricCoords) && vL barycentricCoords > epsilon)
         then Nothing
@@ -199,15 +199,23 @@ posRotToNtcTris world (pos, rotMat) =
         ntcTris         = (fmap . fmap) divW screenTris
     in ntcTris
 
+-- | Check if a point is within a triangle's 2D bounding box (fast pre-rejection)
+inTriAABB :: Vec2 -> Tri Vec4 -> Bool
+inTriAABB (Vec2 px py) (Tri a b c _) =
+    let
+        axs = map (vF . toVec2) [a, b, c]
+        ays = map (vL . toVec2) [a, b, c]
+    in px >= minimum axs && px <= maximum axs && py >= minimum ays && py <= maximum ays
+
 -- | Find the RGB colour of the nearest triangle covering pixel @p@
 getColorOfPixel :: Vec2 -> [Tri Vec4] -> Projection -> [Tri Vec3] -> Word8 -> Mat4 -> RGB
-getColorOfPixel _ _ _ _ 0 _ = RGB { red = 160, green = 32, blue = 240 } -- portal depth limit: purple
+getColorOfPixel _ _ _ _ 0 _ = RGB { red = 160, green = 32, blue = 240 }
 getColorOfPixel p tris proj worldRegress regressCount rotRegress =
-    let candidates =
-            [ (d, rgb)
-            | Tri a b c colorMapping <- tris
-            , Just (rgb, d) <- [pointInsideTriColor p (Tri a b c colorMapping)
-                                    colorMapping proj worldRegress regressCount rotRegress]
+    let candidates = [
+                (d, rgb)
+                | tri <- tris,
+                inTriAABB p tri,
+                Just (rgb, d) <- [pointInsideTriColor p tri proj worldRegress regressCount rotRegress]
             ]
     in case candidates of
         [] -> RGB { red = 0, green = 0, blue = 0 }

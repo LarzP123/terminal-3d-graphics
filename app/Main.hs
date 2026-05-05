@@ -6,6 +6,7 @@ import Control.Monad.IO.Class (liftIO)
 import System.Exit (exitSuccess)
 import Data.List (find)
 import System.IO (hFlush, stdout)
+import qualified Data.ByteString.Lazy as LazyByteBuilder
 
 {-| A possible movement operation containning a position transform (rotation -> position -> output position)
     , rotation transform, action character, and full name -}
@@ -57,7 +58,7 @@ loop world = do
     liftIO clearScreen
     let rotMat  = rotationMatrix currentRot
         ntcTris = posRotToNtcTris world (currentPos, rotMat)
-    liftIO $ putStrLn (getScreen ntcTris screenSize projection world rotMat ssaa ppaa)
+    liftIO $ LazyByteBuilder.hPut stdout (getScreen ntcTris screenSize projection world rotMat ssaa ppaa)
     liftIO $ putStrLn ("Position : " ++ show currentPos)
     liftIO $ putStrLn ("Rotation : " ++ show currentRot)
     liftIO $ putStrLn ("SSAA     : " ++ show ssaa)

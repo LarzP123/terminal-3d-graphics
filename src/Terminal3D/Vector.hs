@@ -1,13 +1,13 @@
 module Terminal3D.Vector where
 
 -- | A Vector containing 2 components
-data Vec2 = Vec2 Double Double deriving (Eq, Show)
+data Vec2 = Vec2 {-# UNPACK #-} !Double {-# UNPACK #-} !Double deriving (Eq, Show)
 
 -- | A Vector containing 3 components
-data Vec3 = Vec3 Double Double Double deriving (Eq, Show)
+data Vec3 = Vec3 {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Double deriving (Eq, Show)
 
 -- | A Vector containing 4 components
-data Vec4 = Vec4 Double Double Double Double deriving (Eq, Show)
+data Vec4 = Vec4 {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Double {-# UNPACK #-} !Double deriving (Eq, Show)
 
 -- Does Z Buffering to get the nearest Vector
 instance Ord Vec3 where

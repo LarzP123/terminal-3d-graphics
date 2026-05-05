@@ -6,7 +6,7 @@ import Terminal3D.Textures
 import Terminal3D.Matrix
 
 -- | Build a textured quad (two triangles) from four corner vertices and a texture
-wallFormer :: [[RGB]] -> Vec3 -> Vec3 -> Vec3 -> Vec3 -> [Tri Vec3]
+wallFormer :: Texture -> Vec3 -> Vec3 -> Vec3 -> Vec3 -> [Tri Vec3]
 wallFormer tex v0 v1 v2 v3 =
     [ Tri v0 v1 v2 (Texture (TextureMapping tex (Vec2 0 0) (Vec2 1 0) (Vec2 1 1)))
     , Tri v0 v2 v3 (Texture (TextureMapping tex (Vec2 0 0) (Vec2 1 1) (Vec2 0 1)))
@@ -14,7 +14,7 @@ wallFormer tex v0 v1 v2 v3 =
 
 -- | Build a pair of linked portal quads with decorative borders
 portalFormer
-    :: [[RGB]] -> [[RGB]]
+    :: Texture -> Texture
     -> (Vec3, Vec3) -> (Vec3, Vec3)
     -> Bool
     -> [Tri Vec3]
@@ -35,7 +35,7 @@ portalFormer borderTexA borderTexB (vA0, vA2) (vB0, vB2) flipPortal =
        ++ borderFormer borderTexB (vB0, vB1, vB2, vB3) False
 
 -- | Build a slightly-scaled border quad around a portal face
-borderFormer :: [[RGB]] -> (Vec3, Vec3, Vec3, Vec3) -> Bool -> [Tri Vec3]
+borderFormer :: Texture -> (Vec3, Vec3, Vec3, Vec3) -> Bool -> [Tri Vec3]
 borderFormer tex (v0, v1, v2, v3) flipBool =
     let normNotDirec = (v3 - v0) `cross` (v2 - v0)
         direc        = if flipBool then negate normNotDirec else normNotDirec
@@ -49,7 +49,7 @@ borderFormer tex (v0, v1, v2, v3) flipBool =
     in wallFormer tex b0 b1 b2 b3
 
 -- | Build a textured unit cube centred at the origin (side length 20)
-cubeFormer :: [[RGB]] -> [Tri Vec3]
+cubeFormer :: Texture -> [Tri Vec3]
 cubeFormer tex =
     let p000 = Vec3 (-10) (-10) (-10); p001 = Vec3 (-10) (-10) 10
         p010 = Vec3 (-10)  10  (-10);  p011 = Vec3 (-10)  10   10

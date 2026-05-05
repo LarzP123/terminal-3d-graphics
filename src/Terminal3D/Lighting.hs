@@ -14,7 +14,7 @@ bakeLight lights tri@(Tri v1 v2 v3 colorMap) =
         Solid rgb ->
             Tri v1 v2 v3 (Solid (brightMap (*mult) rgb))
         Texture (TextureMapping tex uvA uvB uvC) ->
-            let bakedTex = map (map (brightMap (*mult))) tex
+            let bakedTex = fmap (brightMap (*mult)) tex
             in Tri v1 v2 v3 (Texture (TextureMapping bakedTex uvA uvB uvC))
         Portal v1b v2b v3b rotMat ->
             Tri v1 v2 v3 (Portal v1b v2b v3b rotMat)
