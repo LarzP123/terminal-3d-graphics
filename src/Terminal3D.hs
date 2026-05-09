@@ -30,6 +30,7 @@ module Terminal3D
     , module Terminal3D.Lighting
     , module Terminal3D.TerminalGraphics
     , module Terminal3D.Objects
+    , module Terminal3D.BigText
     ) where
 
 import Terminal3D.Vector
@@ -39,3 +40,4 @@ import Terminal3D.Tri
 import Terminal3D.Lighting
 import Terminal3D.TerminalGraphics
 import Terminal3D.Objects
+import Terminal3D.BigText

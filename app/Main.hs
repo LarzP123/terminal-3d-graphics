@@ -53,6 +53,9 @@ helpText = unlines $
 -- | (cameraPosition, cameraRotation, projection, screenSize, Supersampling Anti-Aliasing, Post Processing Anti-Aliasing)
 type AppState = (Vec3, Vec3, Projection, (Int, Int), AntiAliasing, AntiAliasing)
 
+getTextSize :: (Int, Int) -> Int
+getTextSize (w, _) = quot w 1000
+
 -- | Main render/input loop.
 loop :: [Tri Vec3] -> StateT AppState IO ()
 loop world = do
@@ -60,11 +63,12 @@ loop world = do
     liftIO clearScreen
     let rotMat  = rotationMatrix currentRot
         ntcTris = posRotToNtcTris world (currentPos, rotMat)
+        textSize = getTextSize screenSize
     liftIO $ LazyByteBuilder.hPut stdout (getScreen ntcTris screenSize projection world rotMat ssaa ppaa)
-    liftIO $ putStrLn ("Position : " ++ show currentPos)
-    liftIO $ putStrLn ("Rotation : " ++ show currentRot)
-    liftIO $ putStrLn ("SSAA     : " ++ show ssaa)
-    liftIO $ putStrLn ("PPAA     : " ++ show ppaa)
+    liftIO $ printBig textSize ("Position : " ++ show currentPos)
+    liftIO $ printBig textSize ("Rotation : " ++ show currentRot)
+    liftIO $ printBig textSize ("SSAA     : " ++ show ssaa)
+    liftIO $ printBig textSize ("PPAA     : " ++ show ppaa)
     promptLoop world
 
 promptLoop :: [Tri Vec3] -> StateT AppState IO ()
@@ -72,20 +76,21 @@ promptLoop world = do
     liftIO $ putStr "Command (or help/quit): "
     liftIO $ hFlush stdout
     cmd <- liftIO getLine
-    (currentPos, currentRot, _, _, _, _) <- get
+    (currentPos, currentRot, _, screenSize, _, _) <- get
+    let textSize = getTextSize screenSize
     case words cmd of
         ("ssaa" : rest) -> case parseAA rest of
             Right newAA  -> modify (\(p, r, pr, s, _, pp) -> (p, r, pr, s, newAA, pp)) >> loop world
-            Left err     -> liftIO (putStrLn err) >> promptLoop world
+            Left err     -> liftIO (printBig textSize err) >> promptLoop world
         ("ppaa" : rest) -> case parseAA rest of
             Right newAA  -> modify (\(p, r, pr, s, sp, _) -> (p, r, pr, s, sp, newAA)) >> loop world
-            Left err     -> liftIO (putStrLn err) >> promptLoop world
+            Left err     -> liftIO (printBig textSize err) >> promptLoop world
         _ -> case cmd of
-            "quit" -> liftIO (putStrLn "Goodbye." >> exitSuccess)
-            "?"    -> liftIO (putStrLn helpText) >> promptLoop world
-            "help" -> liftIO (putStrLn helpText) >> promptLoop world
+            "quit" -> liftIO (printBig textSize "Goodbye." >> exitSuccess)
+            "?"    -> liftIO (printBig textSize helpText) >> promptLoop world
+            "help" -> liftIO (printBig textSize helpText) >> promptLoop world
             _      -> case move cmd currentPos currentRot of
-                Nothing       -> liftIO (putStrLn ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
+                Nothing       -> liftIO (printBig textSize ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
                 Just (p', r') -> modify (\(_, _, pr, s, sp, pp) -> (p', r', pr, s, sp, pp)) >> loop world
 
 -- | Parses user input for changing anti-aliasing settings
