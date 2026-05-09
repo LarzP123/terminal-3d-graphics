@@ -49,6 +49,7 @@ library
         Terminal3D.Lighting
         Terminal3D.TerminalGraphics
         Terminal3D.Objects
+        Terminal3D.BigText
 
 -- -----------------------------------------------------------------------
 -- Executable: demo scene (room + cube + portals)
