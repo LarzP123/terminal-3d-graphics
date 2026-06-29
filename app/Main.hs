@@ -8,10 +8,10 @@ portalWorld :: IO [Tri Vec3]
 portalWorld = do
     [cubeTexture, wallTexture, floorTexture, portalOrangeTexture, portalBlueTexture]
         <- mapM readBMP [ "textures/cube.bmp", "textures/wall.bmp", "textures/floor.bmp", "textures/portalOrange.bmp", "textures/portalBlue.bmp" ]
-    let cube    = cubeFormer cubeTexture
-        room = roomFormer (Vec3 (-50) (-20) (-75)) (Vec3 50 50 50) floorTexture wallTexture
-        portalMin = Vec3 (-48) (-10) (-40)
-        portalMax = Vec3   48    35    10
+    let cube = (fmap . fmap) (+ Vec3 20 (-15) 15) (cubeFormer cubeTexture)
+        room = roomFormer (Vec3 (-30) (-35) (-60)) (Vec3 70 35 65) floorTexture wallTexture
+        portalMin = Vec3 (-28) (-25) (-25)
+        portalMax = Vec3   68    20    25
         portal = portalFormer portalBlueTexture portalOrangeTexture
             ( comp3Reduce portalMin portalMin portalMax, comp3Reduce portalMin portalMax portalMin )
             ( comp3Reduce portalMax portalMin portalMax, comp3Reduce portalMax portalMax portalMin )

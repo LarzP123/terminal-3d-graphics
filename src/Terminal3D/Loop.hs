@@ -15,14 +15,11 @@ import Terminal3D.BigText
 import System.Process (callCommand)
 import Data.List
 
-class Default a where
-    def :: a
-
 -- | (cameraPosition, cameraRotation, projection, screenSize, Supersampling Anti-Aliasing, Post Processing Anti-Aliasing)
 newtype AppState = AppState (Vec3, Vec3, Projection, (Int, Int), AntiAliasing, AntiAliasing)
 
 instance Default AppState where
-    def = AppState ( Vec3 (-20) 15 (-15), Vec3 0.0 (-1.2) 0, Perspective, (100, 50), aaBox 1, aaBox 1 )
+    def = AppState ( 0, 0, Perspective, (100, 50), def, def )
 
 instance Show AppState where
     show (AppState (pos, rot, proj, screenSize, ssaa, ppaa)) =
