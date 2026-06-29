@@ -31,6 +31,8 @@ module Terminal3D
     , module Terminal3D.TerminalGraphics
     , module Terminal3D.Objects
     , module Terminal3D.BigText
+    , module Terminal3D.Movement
+    , module Terminal3D.Loop
     ) where
 
 import Terminal3D.Vector
@@ -41,3 +43,5 @@ import Terminal3D.Lighting
 import Terminal3D.TerminalGraphics
 import Terminal3D.Objects
 import Terminal3D.BigText
+import Terminal3D.Movement
+import Terminal3D.Loop

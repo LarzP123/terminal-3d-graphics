@@ -50,6 +50,8 @@ library
         Terminal3D.TerminalGraphics
         Terminal3D.Objects
         Terminal3D.BigText
+        Terminal3D.Movement
+        Terminal3D.Loop
 
 -- -----------------------------------------------------------------------
 -- Executable: demo scene (room + cube + portals)

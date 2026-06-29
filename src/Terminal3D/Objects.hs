@@ -12,6 +12,38 @@ wallFormer tex v0 v1 v2 v3 =
     , Tri v0 v2 v3 (Texture (TextureMapping tex (Vec2 0 0) (Vec2 1 1) (Vec2 0 1)))
     ]
 
+-- | Builds a room from a Vec3 featuring one corner and another with the opposite corner
+roomFormer :: Vec3 -> Vec3 -> Texture -> Texture -> [Tri Vec3]
+roomFormer roomMin roomMax floorTexture wallTexture =
+    let 
+        roomFloor = fmap flipTri (wallFormer floorTexture
+                        (comp3Reduce roomMin roomMin roomMin)
+                        (comp3Reduce roomMax roomMin roomMin)
+                        (comp3Reduce roomMax roomMin roomMax)
+                        (comp3Reduce roomMin roomMin roomMax))
+        wallFront = wallFormer wallTexture
+                        (comp3Reduce roomMin roomMin roomMax)
+                        (comp3Reduce roomMax roomMin roomMax)
+                        (comp3Reduce roomMax roomMax roomMax)
+                        (comp3Reduce roomMin roomMax roomMax)
+        wallBack  = wallFormer wallTexture
+                        (comp3Reduce roomMax roomMin roomMin)
+                        (comp3Reduce roomMin roomMin roomMin)
+                        (comp3Reduce roomMin roomMax roomMin)
+                        (comp3Reduce roomMax roomMax roomMin)
+        wallLeft  = wallFormer wallTexture
+                        (comp3Reduce roomMin roomMin roomMin)
+                        (comp3Reduce roomMin roomMin roomMax)
+                        (comp3Reduce roomMin roomMax roomMax)
+                        (comp3Reduce roomMin roomMax roomMin)
+        wallRight = wallFormer wallTexture
+                        (comp3Reduce roomMax roomMin roomMax)
+                        (comp3Reduce roomMax roomMin roomMin)
+                        (comp3Reduce roomMax roomMax roomMin)
+                        (comp3Reduce roomMax roomMax roomMax)
+    in concat [roomFloor, wallFront, wallBack, wallLeft, wallRight]
+
+
 -- | Build a pair of linked portal quads with decorative borders
 portalFormer
     :: Texture -> Texture
