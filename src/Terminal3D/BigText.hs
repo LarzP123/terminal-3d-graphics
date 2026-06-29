@@ -2,6 +2,10 @@ module Terminal3D.BigText where
 
 import Data.Char
 
+-- | Given a screen resolution in pixels, this will return an appropriate text size to use
+getTextSize :: (Int, Int) -> Int
+getTextSize (w, _) = quot w 1000
+
 -- | Print big text at a given scale.
 printBig :: Int -> String -> IO ()
 printBig 0 msg = putStrLn msg

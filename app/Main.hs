@@ -35,12 +35,4 @@ chooseDemoWorld = do
 
 -- | Entry point
 main :: IO ()
-main = do
-    chooseDemoWorld >>= flip (evalStateT . loop)
-        ( Vec3 (-20) 15 (-15)
-        , Vec3 0.0 (-1.2) 0
-        , Perspective
-        , (100, 50)
-        , aaBox 1 -- supersampling
-        , aaBox 1 -- post-process
-        )
+main = do chooseDemoWorld >>= flip (evalStateT . loop) ( def :: AppState )
