@@ -60,6 +60,12 @@ neighbourhood :: [(Int, Int, Double)] -> FGrid RGB -> RGB
 neighbourhood offsets (FGrid (cx, cy) g) =
     blendRGB [ (w, gridAt g (cx+dc) (cy+dr)) | (dc, dr, w) <- offsets ]
 
+class Default a where
+    def :: a
+
+instance Default AntiAliasing where
+    def = aaBox 1
+
 data AntiAliasing = AntiAliasing {
         aaName :: String,
         aaSize :: Int,
