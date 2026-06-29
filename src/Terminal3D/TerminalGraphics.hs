@@ -20,7 +20,7 @@ instance Functor Grid where
 gridAt :: Grid a -> Int -> Int -> a
 gridAt (Grid rows) x y =
     let yOut = max 0 (min (length rows - 1) y)
-        xOut = max 0 (min (length (head rows) - 1) x)
+        xOut = max 0 (min (length (rows !! yOut) - 1) x)
     in  rows !! yOut !! xOut
 
 -- | A Grid with a focused point for comonadic extension
@@ -90,6 +90,9 @@ aaGaussian n = AntiAliasing "aaGaussian" n offsets
         r       = n `div` 2
         sigma   = fromIntegral n / 6
         w dc dr = exp (negate (fromIntegral (dc*dc + dr*dr)) / (2 * sigma * sigma))
+
+aaMethods :: [Int -> AntiAliasing]
+aaMethods = [aaBox, aaGaussian]
 
 -- | Converts integer pixel offsets to normalised sub-pixel sample positions
 toSubPixel :: [(Int, Int, Double)] -> [(Double, Double, Double)]

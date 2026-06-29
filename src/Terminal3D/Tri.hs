@@ -7,7 +7,7 @@ import Data.Word
 import Data.Array
 
 -- | Projection mode for texture mapping
-data Projection = Affine | Perspective
+data Projection = Affine | Perspective deriving Show
 
 -- | Build a change-of-basis matrix from three triangle vertices
 triToBasisMat :: (Vec3, Vec3, Vec3) -> Mat4

@@ -32,17 +32,3 @@ move cmd pos rot =
         Just (MoveOperation posT rotT _ _) -> Just (posT rot pos, rotT rot)
         Nothing                            -> Nothing
 
--- | Return a help string listing all available commands.
-helpText :: String
-helpText = unlines $
-    map (\(MoveOperation _ _ c name) -> "  " ++ [c] ++ "  " ++ name) moveOperations
-    ++
-    [ -- Temporary hardcoding of command help text.
-        "",
-        "Anti-aliasing (post-process):    ppaa box <n> | ppaa gaussian <n>",
-        "Anti-aliasing (supersampling):   ssaa box <n> | ssaa gaussian <n>"
-    ]
-
--- | Given a screen resolution in pixels, this will return an appropriate text size to use
-getTextSize :: (Int, Int) -> Int
-getTextSize (w, _) = quot w 1000
