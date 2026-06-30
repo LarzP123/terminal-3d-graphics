@@ -21,6 +21,45 @@ solWallFormer rgb v0 v1 v2 v3 =
 
 type WallFormer = Vec3 -> Vec3 -> Vec3 -> Vec3 -> [Tri Vec3]
 
+treeFormer :: WallFormer -> WallFormer -> [Tri Vec3]
+treeFormer trunkFormer leafFormer =
+        trunkFormer -- Trunk
+            (Vec3 (-trunkW) (-trunkH) 0)
+            (Vec3   trunkW  (-trunkH) 0)
+            (Vec3   trunkW    0       0)
+            (Vec3 (-trunkW)   0       0)
+        ++ trunkFormer
+            (Vec3 0 (-trunkH) (-trunkW))
+            (Vec3 0 (-trunkH)   trunkW)
+            (Vec3 0   0         trunkW)
+            (Vec3 0   0       (-trunkW))
+        ++ leafFormer -- Left Leaf
+            (Vec3 0 leafH 0) (Vec3 (-leafW) 0 0) (Vec3 leafW 0 0) (Vec3 0 leafH 0)
+        ++ leafFormer -- Front Leaf
+            (Vec3 0 leafH 0) (Vec3 0 0 (-leafW)) (Vec3 0 0 leafW) (Vec3 0 leafH 0)
+    where
+        trunkH = 4
+        trunkW = 2
+        leafH  = 14
+        leafW  = 8
+
+-- | Makes island
+islandFormer :: Double -> Double -> WallFormer -> WallFormer -> [Tri Vec3]
+islandFormer radius height sideFormer baseFormer =
+    let angle i  = (pi / 3) * fromIntegral i
+        basePt i = Vec3 (radius * cos (angle i)) 0 (radius * sin (angle i))
+        apex     = Vec3 0 (-height) 0
+        baseCtr  = Vec3 0 0 0
+        sides = concat
+            [ fmap flipTri (sideFormer (basePt i) (basePt (i + 1)) apex apex)
+            | i <- [0 :: Int .. 5]
+            ]
+        base = concat
+            [ fmap flipTri (baseFormer baseCtr (basePt i) (basePt (i + 1)) baseCtr)
+            | i <- [0 :: Int .. 5]
+            ]
+    in sides ++ base
+
 -- | Builds a room from a Vec3 featuring one corner and another with the opposite corner
 roomFormer :: Vec3 -> Vec3 -> WallFormer -> WallFormer -> [Tri Vec3]
 roomFormer roomMin roomMax floorFormer wallFormer =

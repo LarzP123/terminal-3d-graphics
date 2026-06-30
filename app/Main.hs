@@ -35,9 +35,22 @@ chessWorld = do
         room = roomFormer (Vec3 (-100) (-100) (-100)) (Vec3 100 100 100) (solWallFormer skyBlue) (solWallFormer skyBlue)
     pure ((bakeLight [Ambient 0.5] <$> movedBoard) ++ room)
 
+-- | A world with a portal on the side of each wall
+islandWorld :: IO [Tri Vec3]
+islandWorld = do
+    [trunkTexture, leafTexture, skyTexture, grassTexture, rockTexture]
+            <- mapM readBMP [ "textures/trunk.bmp", "textures/leaf.bmp", "textures/sky.bmp", "textures/grass.bmp", "textures/rock.bmp" ]
+    let
+        tree = treeFormer (texWallFormer trunkTexture) (texWallFormer leafTexture)
+        lights = [Ray (Vec3 0.25 0.25 0.25), Ambient 0.5]
+        island = islandFormer 20 30 (texWallFormer rockTexture) (texWallFormer grassTexture)
+        shiftedWorld = (fmap . fmap) (+ Vec3 (-5) (-10) (-5)) (island ++ tree)
+        room = roomFormer (Vec3 (-100) (-100) (-100)) (Vec3 100 100 100) (texWallFormer skyTexture) (texWallFormer skyTexture)
+    pure ((bakeLight lights <$> shiftedWorld) ++ room)
+
 -- | A list of all of the demo worlds to show off, and a corresponding name
 demoWorlds :: [(String, IO [Tri Vec3])]
-demoWorlds = [ ("portal", portalWorld), ("chess", chessWorld)]
+demoWorlds = [ ("portal", portalWorld), ("chess", chessWorld), ("island", islandWorld)]
 
 -- | A function that prompts the user with a list of demo worlds and has them enter a number to choose one. It then returns that demo world
 chooseDemoWorld :: IO [Tri Vec3]
