@@ -77,7 +77,7 @@ instance Show AntiAliasing where
 
 -- | Creates a uniform box filter anti-aliasing with an nxn kernel
 aaBox :: Int -> AntiAliasing
-aaBox n = AntiAliasing "aaBox" n offsets
+aaBox n = AntiAliasing "Box" n offsets
   where
     offsets
         | n <= 1    = [(0, 0, 1)]
@@ -87,7 +87,7 @@ aaBox n = AntiAliasing "aaBox" n offsets
 
 -- | Creates a gaussian weighted anti-aliasing with an nxn kernel
 aaGaussian :: Int -> AntiAliasing
-aaGaussian n = AntiAliasing "aaGaussian" n offsets
+aaGaussian n = AntiAliasing "Gaussian" n offsets
     where
         offsets
             | n <= 1    = [(0, 0, 1)]

@@ -38,13 +38,21 @@ parseAA ["box", n]      = case reads n of { [(i, "")] -> Right (aaBox i);      _
 parseAA ["gaussian", n] = case reads n of { [(i, "")] -> Right (aaGaussian i); _ -> Left ("Not a valid integer: " ++ n) }
 parseAA _               = Left "Usage: none | box <n> | gaussian <n>"
 
+-- | Parses user input for changing the screen size
+parseSize :: [String] -> Either String (Int, Int)
+parseSize [w, h] = case (reads w, reads h) of
+    ([(w', "")], [(h', "")]) | w' > 0 && h' > 0 -> Right (w', h')
+    _ -> Left "Width and height must be positive integers"
+parseSize _ = Left "Usage: ScreenSize <width> <height>"
+
 -- | Return a help string listing all available commands.
 helpText :: String
 helpText = 
     let aaFields = filter ("AA" `isSuffixOf`) (map (takeWhile (/= ' ')) (lines (show (def :: AppState))))
     in unlines $
         map (\(MoveOperation _ _ c name) -> "  " ++ [c] ++ "  " ++ name) moveOperations ++
-        [ unwords (map ((label ++) . (++ " <n>") . aaName . ($ 0)) aaMethods) | label <- aaFields ]
+        [ unwords (map (((label ++ " ") ++ ) . (++ " <n>") . aaName . ($ 0)) aaMethods) | label <- aaFields ] ++
+        [ "ScreenSize <w> <h>" ]
 
 -- | Main render/input loop.
 loop :: [Tri Vec3] -> StateT AppState IO ()
@@ -74,6 +82,9 @@ promptLoop world = do
         ("ppaa" : rest) -> case parseAA rest of
             Right newAA  -> modify (\(AppState(p, r, pr, s, sp, _)) -> AppState (p, r, pr, s, sp, newAA)) >> loop world
             Left err     -> liftIO (printBig textSize err) >> promptLoop world
+        ("screensize" : rest) -> case parseSize rest of
+            Right newSize -> modify (\(AppState (p, r, pr, _, sp, pp)) -> AppState (p, r, pr, newSize, sp, pp)) >> loop world
+            Left err      -> liftIO (printBig textSize err) >> promptLoop world
         _ -> case cmd of
             "quit" -> liftIO (printBig textSize "Goodbye." >> exitSuccess)
             "?"    -> liftIO (printBig textSize helpText) >> promptLoop world
