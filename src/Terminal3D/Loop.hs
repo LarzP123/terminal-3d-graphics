@@ -54,21 +54,28 @@ helpText =
         [ unwords (map (((label ++ " ") ++ ) . (++ " <n>") . aaName . ($ 0)) aaMethods) | label <- aaFields ] ++
         [ "ScreenSize <w> <h>" ]
 
+-- | A world's triangles plus optional walls the camera can't leave
+data World = World
+    { worldTris   :: [Tri Vec3]
+    , worldBounds :: Maybe Bounds
+    }
+
 -- | Main render/input loop.
-loop :: [Tri Vec3] -> StateT AppState IO ()
+loop :: World -> StateT AppState IO ()
 loop world = do
     liftIO $ callCommand "chcp 65001" -- Force UTF8 output on Windows. Hackish
     appState@(AppState (currentPos, currentRot, projection, screenSize, ssaa, ppaa)) <- get
     liftIO clearScreen
-    let rotMat  = rotationMatrix currentRot
-        ntcTris = posRotToNtcTris world (currentPos, rotMat)
+    let tris     = worldTris world
+        rotMat   = rotationMatrix currentRot
+        ntcTris  = posRotToNtcTris tris (currentPos, rotMat)
         textSize = getTextSize screenSize
-    liftIO $ LazyByteBuilder.hPut stdout (getScreen ntcTris screenSize projection world rotMat ssaa ppaa)
+    liftIO $ LazyByteBuilder.hPut stdout (getScreen ntcTris screenSize projection tris rotMat ssaa ppaa)
     liftIO $ printBig textSize (show appState)
     promptLoop world
 
 -- | A loop for prompting the user for what input to do
-promptLoop :: [Tri Vec3] -> StateT AppState IO ()
+promptLoop :: World -> StateT AppState IO ()
 promptLoop world = do
     liftIO $ putStr "Command (or help/quit): "
     liftIO $ hFlush stdout
@@ -89,6 +96,6 @@ promptLoop world = do
             "quit" -> liftIO (printBig textSize "Goodbye." >> exitSuccess)
             "?"    -> liftIO (printBig textSize helpText) >> promptLoop world
             "help" -> liftIO (printBig textSize helpText) >> promptLoop world
-            _      -> case move cmd currentPos currentRot of
+            _      -> case move (worldBounds world) cmd currentPos currentRot of   -- CHANGED (added worldBounds world)
                 Nothing       -> liftIO (printBig textSize ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
                 Just (p', r') -> modify (\(AppState (_, _, pr, s, sp, pp)) -> AppState (p', r', pr, s, sp, pp)) >> loop world
