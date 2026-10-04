@@ -25,10 +25,21 @@ moveOperations =
     pitchInc = 0.2
     yawInc   = 0.2
 
+-- | Optional boundaries of a world the player cannot leave past as (minX, maxX, minZ, maxZ).
+type Bounds = (Int, Int, Int, Int)
+
+-- | Push a position back inside the bounds. Makes it so the player can't leave the area
+clampToBounds :: Maybe Bounds -> Vec3 -> Vec3
+clampToBounds Nothing pos = pos
+clampToBounds (Just (minX, maxX, minZ, maxZ)) (Vec3 x y z) =
+    Vec3 (clamp minX maxX x) y (clamp minZ maxZ z)
+  where
+    clamp lo hi = max (fromIntegral lo) . min (fromIntegral hi)
+
 -- | Parse a movement command and return updated (position, rotation), or Nothing if invalid.
-move :: String -> Vec3 -> Vec3 -> Maybe (Vec3, Vec3)
-move cmd pos rot =
+move :: Maybe Bounds -> String -> Vec3 -> Vec3 -> Maybe (Vec3, Vec3)
+move bounds cmd pos rot =
     case find (\(MoveOperation _ _ c name) -> name == cmd || [c] == cmd) moveOperations of
-        Just (MoveOperation posT rotT _ _) -> Just (posT rot pos, rotT rot)
+        Just (MoveOperation posT rotT _ _) -> Just (clampToBounds bounds (posT rot pos), rotT rot)
         Nothing                            -> Nothing
 
