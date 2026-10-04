@@ -52,6 +52,7 @@ library
         Terminal3D.BigText
         Terminal3D.Movement
         Terminal3D.Loop
+        Terminal3D.Localization
 
 -- -----------------------------------------------------------------------
 -- Executable: demo scene (room + cube + portals)

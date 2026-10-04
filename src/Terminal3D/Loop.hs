@@ -13,46 +13,69 @@ import Terminal3D.Matrix ( rotationMatrix )
 import Terminal3D.Movement
 import Terminal3D.BigText
 import System.Process (callCommand)
+import Terminal3D.Localization
+import Data.Char
 import Data.List
 
 -- | (cameraPosition, cameraRotation, projection, screenSize, Supersampling Anti-Aliasing, Post Processing Anti-Aliasing)
-newtype AppState = AppState (Vec3, Vec3, Projection, (Int, Int), AntiAliasing, AntiAliasing)
+newtype AppState = AppState (Vec3, Vec3, Projection, (Int, Int), AntiAliasing, AntiAliasing, Language)
 
 instance Default AppState where
-    def = AppState ( 0, 0, Perspective, (100, 50), def, def )
+    def = AppState ( 0, 0, Perspective, (100, 50), def, def, langEnglish )
+
 
 instance Show AppState where
-    show (AppState (pos, rot, proj, screenSize, ssaa, ppaa)) =
-        unlines
-            [ "Position  : " ++ show pos
-            , "Rotation  : " ++ show rot
-            , "Projection: " ++ show proj
-            , "ScreenSize: " ++ show screenSize
-            , "SSAA      : " ++ show ssaa
-            , "PPAA      : " ++ show ppaa
-            ]
+    show (AppState (pos, rot, proj, screenSize, ssaa, ppaa, language)) =
+        unlines (map showProperty properties)
+        where
+            translator :: (Local -> String)
+            translator = langPick language
+            showProperty :: (String, String) -> String 
+            showProperty (label, value) = label ++ concat (replicate (spacesToColon - length label) " ") ++ ": " ++ value
+            properties :: [(String, String)]
+            properties = [
+                (translator appstatePosition, show pos),
+                (translator appstateRotation, show rot),
+                (translator appstateProjection, displayProjection translator proj),
+                (translator appstateScreenSize, show screenSize),
+                (translator appstateSSAA, dispalyAntiAliasing translator ssaa),
+                (translator appstatePPAA, dispalyAntiAliasing translator ppaa),
+                (translator appstateLanguage, translator $ langName language)
+                ]
+            spacesToColon :: Int
+            spacesToColon = maximum $ map (length . fst) properties
 
 -- | Parses user input for changing anti-aliasing settings
-parseAA :: [String] -> Either String AntiAliasing
-parseAA ["box", n]      = case reads n of { [(i, "")] -> Right (aaBox i);      _ -> Left ("Not a valid integer: " ++ n) }
-parseAA ["gaussian", n] = case reads n of { [(i, "")] -> Right (aaGaussian i); _ -> Left ("Not a valid integer: " ++ n) }
-parseAA _               = Left "Usage: none | box <n> | gaussian <n>"
+parseAA :: [String] -> (Local -> String) -> Either String AntiAliasing
+parseAA [kind, n] translator
+    | kind == translator inputTypeBox      = case reads n of { [(i, "")] -> Right (aaBox i);      _ -> Left (translator feedbackInteger ++ ": " ++ n) }
+    | kind == translator inputTypeGaussian = case reads n of { [(i, "")] -> Right (aaGaussian i); _ -> Left (translator feedbackInteger ++ ": " ++ n) }
+parseAA _ translator = Left $ translator feedbackUsage ++ ": " ++ translator inputTypeNone ++ " | " ++ translator inputTypeBox ++ " <n> | " ++ translator inputTypeGaussian ++ " <n>"
 
 -- | Parses user input for changing the screen size
-parseSize :: [String] -> Either String (Int, Int)
-parseSize [w, h] = case (reads w, reads h) of
+parseSize :: [String] -> (Local -> String) -> Either String (Int, Int)
+parseSize [w, h] translator = case (reads w, reads h) of
     ([(w', "")], [(h', "")]) | w' > 0 && h' > 0 -> Right (w', h')
-    _ -> Left "Width and height must be positive integers"
-parseSize _ = Left "Usage: ScreenSize <width> <height>"
+    _ -> Left $ translator feedbackPositiveIntegers
+parseSize _ translator = Left $ translator feedbackUsage ++ ":" ++ " " ++ translator appstateScreenSize ++ "  <" ++ translator inputTypeWidth ++ "> <" ++ translator inputTypeHeight ++ ">"
+
+-- | Parses user input for changing the screen size
+parseLang :: [String] -> (Local -> String) -> Either String Language
+parseLang args translator = case args of
+    [lang] | Just l <- find (matches lang) allLanguages -> Right l
+    _ -> Left $ translator feedbackUsage ++ ": " ++ translator appstateLanguage
+                ++ " <" ++ intercalate " | " (map (translator . langName) allLanguages) ++ ">"
+    where
+        matches lang l = map toLower (translator (langName l)) == map toLower lang
 
 -- | Return a help string listing all available commands.
-helpText :: String
-helpText = 
-    let aaFields = filter ("AA" `isSuffixOf`) (map (takeWhile (/= ' ')) (lines (show (def :: AppState))))
+helpText :: (Local -> String) -> String
+helpText translator = 
+    let aaFields = [translator appstateSSAA, translator appstatePPAA]
     in unlines $
-        map (\(MoveOperation _ _ c name) -> "  " ++ [c] ++ "  " ++ name) moveOperations ++
-        [ unwords (map (((label ++ " ") ++ ) . (++ " <n>") . aaName . ($ 0)) aaMethods) | label <- aaFields ] ++
-        [ "ScreenSize <w> <h>" ]
+        map (\(MoveOperation _ _ c name) -> "  " ++ [c] ++ "  " ++ translator name) moveOperations ++
+        [ unwords (map (((label ++ " ") ++ ) . (++ " <n>") . translator . aaName . ($ 0)) aaMethods) | label <- aaFields ] ++
+        [ translator appstateScreenSize ++ " <w> <h>" ]
 
 -- | A world's triangles plus optional walls the camera can't leave
 data World = World
@@ -64,7 +87,7 @@ data World = World
 loop :: World -> StateT AppState IO ()
 loop world = do
     liftIO $ callCommand "chcp 65001" -- Force UTF8 output on Windows. Hackish
-    appState@(AppState (currentPos, currentRot, projection, screenSize, ssaa, ppaa)) <- get
+    appState@(AppState (currentPos, currentRot, projection, screenSize, ssaa, ppaa, _)) <- get
     liftIO clearScreen
     let tris     = worldTris world
         rotMat   = rotationMatrix currentRot
@@ -77,25 +100,29 @@ loop world = do
 -- | A loop for prompting the user for what input to do
 promptLoop :: World -> StateT AppState IO ()
 promptLoop world = do
-    liftIO $ putStr "Command (or help/quit): "
+    AppState (currentPos, currentRot, _, screenSize, _, _, language) <- get
+    let textSize = getTextSize screenSize
+        translator = langPick language
+    liftIO $ putStr (translator feedbackStartText ++ ": ")
     liftIO $ hFlush stdout
     cmd <- liftIO getLine
-    AppState (currentPos, currentRot, _, screenSize, _, _) <- get
-    let textSize = getTextSize screenSize
     case words cmd of
-        ("ssaa" : rest) -> case parseAA rest of
-            Right newAA  -> modify (\(AppState (p, r, pr, s, _, pp)) -> AppState (p, r, pr, s, newAA, pp)) >> loop world
+        (ssaaWord : rest) | ssaaWord == translator appstateSSAA -> case parseAA rest translator of
+            Right newAA  -> modify (\(AppState (p, r, pr, s, _, pp, lang)) -> AppState (p, r, pr, s, newAA, pp, lang)) >> loop world
             Left err     -> liftIO (printBig textSize err) >> promptLoop world
-        ("ppaa" : rest) -> case parseAA rest of
-            Right newAA  -> modify (\(AppState(p, r, pr, s, sp, _)) -> AppState (p, r, pr, s, sp, newAA)) >> loop world
+        (ppaaWord : rest) | ppaaWord == translator appstatePPAA -> case parseAA rest translator of
+            Right newAA  -> modify (\(AppState(p, r, pr, s, sp, _, lang)) -> AppState (p, r, pr, s, sp, newAA, lang)) >> loop world
             Left err     -> liftIO (printBig textSize err) >> promptLoop world
-        ("screensize" : rest) -> case parseSize rest of
-            Right newSize -> modify (\(AppState (p, r, pr, _, sp, pp)) -> AppState (p, r, pr, newSize, sp, pp)) >> loop world
+        (screenSizeWord : rest) | screenSizeWord == translator appstateScreenSize -> case parseSize rest translator of
+            Right newSize -> modify (\(AppState (p, r, pr, _, sp, pp, lang)) -> AppState (p, r, pr, newSize, sp, pp, lang)) >> loop world
+            Left err      -> liftIO (printBig textSize err) >> promptLoop world
+        (langWord : rest) | langWord == translator appstateLanguage -> case parseLang rest translator of
+            Right newLang -> modify (\(AppState (p, r, pr, s, sp, pp, _)) -> AppState (p, r, pr, s, sp, pp, newLang)) >> loop world
             Left err      -> liftIO (printBig textSize err) >> promptLoop world
         _ -> case cmd of
-            "quit" -> liftIO (printBig textSize "Goodbye." >> exitSuccess)
-            "?"    -> liftIO (printBig textSize helpText) >> promptLoop world
-            "help" -> liftIO (printBig textSize helpText) >> promptLoop world
-            _      -> case move (worldBounds world) cmd currentPos currentRot of   -- CHANGED (added worldBounds world)
-                Nothing       -> liftIO (printBig textSize ("Unknown command: \"" ++ cmd ++ "\". Try '?' for help.")) >> promptLoop world
-                Just (p', r') -> modify (\(AppState (_, _, pr, s, sp, pp)) -> AppState (p', r', pr, s, sp, pp)) >> loop world
+            _ | cmd == translator commandQuit  -> liftIO (printBig textSize (translator feedbackGoodbye) >> exitSuccess)
+            "?" -> liftIO (printBig textSize (helpText translator)) >> promptLoop world
+            _ | cmd == translator commandHelp -> liftIO (printBig textSize (helpText translator)) >> promptLoop world
+            _ -> case move (worldBounds world) cmd currentPos currentRot translator of
+                Nothing       -> liftIO (printBig textSize (translator feedbackUnknownCommand ++ ": \"" ++ cmd ++ "\". " ++ translator feedbackHelpUnknownCommand)) >> promptLoop world
+                Just (p', r') -> modify (\(AppState (_, _, pr, s, sp, pp, lang)) -> AppState (p', r', pr, s, sp, pp, lang)) >> loop world
