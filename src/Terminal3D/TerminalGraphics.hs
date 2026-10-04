@@ -9,6 +9,11 @@ import Control.Comonad
 import qualified Data.ByteString.Builder as ByteBuilder
 import qualified Data.ByteString.Lazy as LazyByteBuilder
 import qualified Data.ByteString as StrictBS
+import Terminal3D.Localization
+
+displayProjection :: (Local -> String) -> Projection -> String
+displayProjection translator Perspective = translator inputTypeProjection
+displayProjection translator Affine = translator inputTypeAffine
 
 -- | A 2D grid of values backed by a nested list
 newtype Grid a = Grid { gData :: [[a]] }
@@ -67,17 +72,17 @@ instance Default AntiAliasing where
     def = aaBox 1
 
 data AntiAliasing = AntiAliasing {
-        aaName :: String,
+        aaName :: Local,
         aaSize :: Int,
         runAA  :: [(Int, Int, Double)]
     }
 
-instance Show AntiAliasing where
-    show = liftA2 (++) aaName $ (": " ++) . show . aaSize
+dispalyAntiAliasing :: (Local -> String) -> AntiAliasing -> String
+dispalyAntiAliasing translator = liftA2 (++) (translator . aaName) $ (": " ++) . show . aaSize
 
 -- | Creates a uniform box filter anti-aliasing with an nxn kernel
 aaBox :: Int -> AntiAliasing
-aaBox n = AntiAliasing "Box" n offsets
+aaBox n = AntiAliasing inputTypeBox n offsets
   where
     offsets
         | n <= 1    = [(0, 0, 1)]
@@ -87,7 +92,7 @@ aaBox n = AntiAliasing "Box" n offsets
 
 -- | Creates a gaussian weighted anti-aliasing with an nxn kernel
 aaGaussian :: Int -> AntiAliasing
-aaGaussian n = AntiAliasing "Gaussian" n offsets
+aaGaussian n = AntiAliasing inputTypeGaussian n offsets
     where
         offsets
             | n <= 1    = [(0, 0, 1)]

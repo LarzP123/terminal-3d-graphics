@@ -33,6 +33,7 @@ module Terminal3D
     , module Terminal3D.BigText
     , module Terminal3D.Movement
     , module Terminal3D.Loop
+    , module Terminal3D.Localization
     ) where
 
 import Terminal3D.Vector
@@ -45,3 +46,4 @@ import Terminal3D.Objects
 import Terminal3D.BigText
 import Terminal3D.Movement
 import Terminal3D.Loop
+import Terminal3D.Localization
