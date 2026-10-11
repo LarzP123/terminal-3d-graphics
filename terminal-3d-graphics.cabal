@@ -14,6 +14,8 @@ bug-reports:     https://github.com/LarzP123/terminal-3d-graphics/issues
 build-type:      Simple
 category:        Graphics
 extra-doc-files: README.md
+extra-source-files:
+    textures/*.bmp
 
 source-repository head
     type:     git
@@ -25,14 +27,14 @@ source-repository head
 common shared
     default-language: Haskell2010
     build-depends:
-        base         >= 4.0 && < 5.0,
-        bytestring   < 1,
-        parallel     < 4,
-        transformers < 1,
-        comonad      < 6,
-        array        < 1,
-        deepseq      < 2,
-        process      < 2
+        array >= 0.5.7 && < 0.6,
+        base >= 4.20.0 && < 4.21,
+        bytestring >= 0.12.1 && < 0.13,
+        deepseq >= 1.5.0 && < 1.6,
+        comonad >= 5.0.10 && < 5.1,
+        transformers >= 0.6.1 && < 0.7,
+        parallel >= 3.3.0 && < 3.4,
+        process >= 1.6.19 && < 1.7,
     ghc-options:
         -Wall
         -funbox-strict-fields
