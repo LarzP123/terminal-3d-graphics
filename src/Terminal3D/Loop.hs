@@ -13,6 +13,8 @@ import Terminal3D.Matrix ( rotationMatrix )
 import Terminal3D.Movement
 import Terminal3D.BigText
 import System.Process (callCommand)
+import System.Info (os)
+import Control.Monad (when)
 import Terminal3D.Localization
 import Data.Char
 import Data.List
@@ -86,7 +88,7 @@ data World = World
 -- | Main render/input loop.
 loop :: World -> StateT AppState IO ()
 loop world = do
-    liftIO $ callCommand "chcp 65001" -- Force UTF8 output on Windows. Hackish
+    liftIO $ when (os == "mingw32") $ callCommand "chcp 65001" -- Force UTF8 output on Windows. Hackish
     appState@(AppState (currentPos, currentRot, projection, screenSize, ssaa, ppaa, _)) <- get
     liftIO clearScreen
     let tris     = worldTris world
