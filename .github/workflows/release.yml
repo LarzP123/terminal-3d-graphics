@@ -1,16 +1,42 @@
 name: Release (Tag-based)
 
 on:
-  workflow_run:
-    workflows: ["Auto Tag on Master Merge"]
-    types:
-      - completed
+  push:
+    tags:
+      - "v*"
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag to release, e.g. v0.1.0.1"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - name: Check tag matches cabal version
+        run: |
+          CABAL_VERSION=$(grep -i '^version:' terminal-3d-graphics.cabal | awk '{print $2}')
+          echo "Tag: $TAG  |  Cabal version: $CABAL_VERSION"
+          if [ "v$CABAL_VERSION" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match cabal version v$CABAL_VERSION"
+            exit 1
+          fi
+
   release:
+    needs: check
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -21,13 +47,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Setup Haskell
         uses: haskell-actions/setup@v2
         with:
-          ghc-version: "9.6.6"
-          cabal-version: "3.10"
+          ghc-version: "9.10"
+          cabal-version: "latest"
 
       - name: Cache Cabal
         uses: actions/cache@v4
@@ -80,7 +106,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
@@ -104,15 +130,10 @@ jobs:
           cd windows
           zip -r ../t3d-windows.zip .
 
-      - name: Get tag
-        run: |
-          TAG=$(git describe --tags --abbrev=0)
-          echo "TAG=$TAG" >> $GITHUB_ENV
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.TAG }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
           files: |
             t3d-linux.zip
             t3d-windows.zip

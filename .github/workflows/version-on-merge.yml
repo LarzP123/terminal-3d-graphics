@@ -1,0 +1,82 @@
+name: Version on merge
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled, closed]
+    branches:
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  # Shows a red X on the PR until you pick a version label
+  require-label:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Require exactly one version label
+        id: label
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          COUNT=$(jq '[.[] | select(. == "patch" or . == "minor" or . == "major" or . == "no-release")] | length' <<< "$LABELS")
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::Add exactly one label to this PR before merging: patch, minor, major, or no-release"
+            exit 1
+          fi
+          echo "Version label OK"
+
+  # Runs after the PR is merged
+  bump:
+    if: github.event.action == 'closed' && github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.bump.outputs.tag }}
+
+    steps:
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Bump version, commit and tag
+        id: bump
+        env:
+          LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+        run: |
+          BUMP=$(jq -r 'if index("major") then "major" elif index("minor") then "minor" elif index("patch") then "patch" else empty end' <<< "$LABELS")
+          if [ -z "$BUMP" ]; then
+            echo "No patch/minor/major label on this PR - not releasing."
+            exit 0
+          fi
+          CURRENT=$(grep -i '^version:' terminal-3d-graphics.cabal | awk '{print $2}')
+          IFS=. read -r A B C D EXTRA <<< "$CURRENT"
+          if [ -z "$D" ] || [ -n "$EXTRA" ]; then
+            echo "::error::Expected a 4-part version like 0.1.0.0, found '$CURRENT'"
+            exit 1
+          fi
+          case "$BUMP" in
+            major) B=$((B + 1)); C=0; D=0 ;;
+            minor) C=$((C + 1)); D=0 ;;
+            patch) D=$((D + 1)) ;;
+          esac
+          NEW="$A.$B.$C.$D"
+          sed -i -E "s/^(version:[[:space:]]+).*/\1$NEW/" terminal-3d-graphics.cabal
+          echo "Bumped $CURRENT -> $NEW ($BUMP)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Bump version to $NEW"
+          git tag "v$NEW"
+          git push origin master "v$NEW"
+          echo "tag=v$NEW" >> "$GITHUB_OUTPUT"
+
+  # Pushes made with the built-in token don't trigger other workflows,
+  # so call the release workflow directly
+  release:
+    needs: bump
+    if: needs.bump.outputs.tag != ''
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.bump.outputs.tag }}
