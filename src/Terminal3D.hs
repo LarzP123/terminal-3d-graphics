@@ -11,15 +11,15 @@ Re-exports every public sub-module so library users only need one import:
 
 @
 import Terminal3D
+import Control.Monad.Trans.State (evalStateT)
 
 main :: IO ()
 main = do
     tex <- readBMP "myTexture.bmp"
-    let world  = cubeFormer tex
+    let tris   = cubeFormer (texWallFormer tex)
         lights = [Ray (Vec3 0.5 1 0.5), Ambient 0.3]
-        litWorld = map (bakeLight lights) world
-    evalStateT (loop litWorld) (Vec3 0 0 (-30), Vec3 0 0 0, Perspective, (80, 40))
-@
+        world  = World (map (bakeLight lights) tris) Nothing
+    evalStateT (loop world) def
 -}
 module Terminal3D
     ( -- * Re-exports
