@@ -1,6 +1,6 @@
 cabal-version:   3.0
 name:            terminal-3d-graphics
-version:         0.1.0.0
+version:         0.2.0.0
 synopsis:        A terminal 3D rasteriser with textures, portals, and baked lighting
 description:
     Simple multi-module Haskell terminal 3D engine.
